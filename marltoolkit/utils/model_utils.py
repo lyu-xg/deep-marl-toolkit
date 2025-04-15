@@ -18,7 +18,7 @@ def get_gard_norm(it):
     for x in it:
         if x.grad is None:
             continue
-        sum_grad += x.grad.norm()**2
+        sum_grad += x.grad.norm() ** 2
     return math.sqrt(sum_grad)
 
 
@@ -46,8 +46,7 @@ def soft_target_update(src: nn.Module, tgt: nn.Module, tau=0.05) -> None:
         tau (float): interpolation parameter
     """
     for src_param, tgt_param in zip(src.parameters(), tgt.parameters()):
-        tgt_param.data.copy_(tau * src_param.data +
-                             (1.0 - tau) * tgt_param.data)
+        tgt_param.data.copy_(tau * src_param.data + (1.0 - tau) * tgt_param.data)
 
 
 def check_model_method(model, method, algo):
@@ -61,18 +60,16 @@ def check_model_method(model, method, algo):
     Raises:
         AssertionError: if method is not implemented in model
     """
-    if method == 'forward':
+    if method == "forward":
         # check if forward is overridden by the subclass
         assert callable(
-            getattr(model, 'forward',
-                    None)), 'forward should be a function in model class'
-        assert model.forward.__func__ is not super(
-            model.__class__, model
-        ).forward.__func__, "{}'s model needs to implement forward method. \n".format(
-            algo)
+            getattr(model, "forward", None)
+        ), "forward should be a function in model class"
+        assert (
+            model.forward.__func__ is not super(model.__class__, model).forward.__func__
+        ), "{}'s model needs to implement forward method. \n".format(algo)
     else:
         # check if the specified method is implemented
-        assert hasattr(model, method) and callable(getattr(
-            model, method,
-            None)), "{}'s model needs to implement {} method. \n".format(
-                algo, method)
+        assert hasattr(model, method) and callable(
+            getattr(model, method, None)
+        ), "{}'s model needs to implement {} method. \n".format(algo, method)

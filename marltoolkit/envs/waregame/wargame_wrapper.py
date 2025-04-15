@@ -2,11 +2,23 @@ import os
 from typing import Dict, Iterable, List, Union
 
 import numpy as np
-from pywargame import (K_INVALID_GOBJECT_ID, AlertStatus, GameAction,
-                       GameActionCode, GameParams, ObjectType, PathLoopMode,
-                       PlayerID, SceneInfo, SupplyStatus, UnitRuntimeInfo,
-                       UnitStaticInfo, Vector3, WarGame,
-                       create_agent_from_file)
+from pywargame import (
+    K_INVALID_GOBJECT_ID,
+    AlertStatus,
+    GameAction,
+    GameActionCode,
+    GameParams,
+    ObjectType,
+    PathLoopMode,
+    PlayerID,
+    SceneInfo,
+    SupplyStatus,
+    UnitRuntimeInfo,
+    UnitStaticInfo,
+    Vector3,
+    WarGame,
+    create_agent_from_file,
+)
 
 MIN_SUPPLY_RATIO = 0.3
 LIFE_SCALE_FACTOR = 500.0
@@ -26,8 +38,7 @@ def encode_large_positive_int(v: int, size: int) -> List[float]:
     k = size - 1
     while v > 0:
         if k < 0:
-            raise RuntimeError(
-                f'Int number {old_v} overflow of feature size {size}')
+            raise RuntimeError(f"Int number {old_v} overflow of feature size {size}")
         digit = v % 10
         feat[k] = digit * 0.1
         v = v // 10
@@ -35,18 +46,18 @@ def encode_large_positive_int(v: int, size: int) -> List[float]:
     return feat
 
 
-def encode_large_float(v: float,
-                       max_val: float,
-                       n_decimal: int = 2) -> List[float]:
+def encode_large_float(v: float, max_val: float, n_decimal: int = 2) -> List[float]:
     assert max_val > 0
     flag = 1.0 if v >= 0 else -1.0
     vp = abs(v)
     v_int_part = int(vp)
     v_decimal_part = int((vp - v_int_part) * pow(10, n_decimal))
     int_max_size = len(str(int(max_val)))
-    return [v / max_val, flag] + encode_large_positive_int(
-        v_int_part, int_max_size) + encode_large_positive_int(
-            v_decimal_part, n_decimal)
+    return (
+        [v / max_val, flag]
+        + encode_large_positive_int(v_int_part, int_max_size)
+        + encode_large_positive_int(v_decimal_part, n_decimal)
+    )
 
 
 def get_opposite_id(player_id: int) -> int:
@@ -65,7 +76,7 @@ def get_opposite_id(player_id: int) -> int:
         return 1
     elif player_id == 1:
         return 0
-    raise RuntimeError(f'Invalid player_id {player_id}')
+    raise RuntimeError(f"Invalid player_id {player_id}")
 
 
 def _simple_one_hot(index: Union[int, List[int]], size: int) -> List[float]:
@@ -79,7 +90,7 @@ def _simple_one_hot(index: Union[int, List[int]], size: int) -> List[float]:
         List[float]: _description_
     """
     if size <= 0:
-        raise RuntimeError(f'Invalid one hot feature size: {size}')
+        raise RuntimeError(f"Invalid one hot feature size: {size}")
     oh_feat = [0.0] * size
     if isinstance(index, int):
         index = [
@@ -108,13 +119,13 @@ def preprocess_data(x, mean, std) -> np.ndarray:
     elif len(x.shape) == 1:
         x_new[mask] = (x[mask] - mean[mask]) / std[mask]
     else:
-        raise RuntimeError(f'Expected 1d or 2d feature array, given {x.shape}')
+        raise RuntimeError(f"Expected 1d or 2d feature array, given {x.shape}")
 
     min_v = np.min(x_new)
     max_v = np.max(x_new)
     mean_v = np.mean(x_new)
     if np.abs(mean_v) > 1000 or np.abs(min_v) > 1000 or np.abs(max_v) > 1000:
-        print('Unexpected feature data!')
+        print("Unexpected feature data!")
 
     return x_new
 
@@ -135,26 +146,24 @@ class WarGameSAWrapper:
         self._coord_max_v = -1
         self._coord_dim = -1
         self._speed_max_v = 340.0 * 8
-        self._speed_dim = get_number_feat_dim(self._speed_max_v,
-                                              self._n_decimal)
+        self._speed_dim = get_number_feat_dim(self._speed_max_v, self._n_decimal)
         self._height_max_v = 100000
-        self._height_dim = get_number_feat_dim(self._height_max_v,
-                                               self._n_decimal)
+        self._height_dim = get_number_feat_dim(self._height_max_v, self._n_decimal)
 
         self._stats = None
         if stats_file is not None and os.path.exists(stats_file):
             import pickle
-            with open(stats_file, 'rb') as fd:
+
+            with open(stats_file, "rb") as fd:
                 self._stats = pickle.load(fd)
-                print(f'Load obs/state mean/std from {stats_file}')
+                print(f"Load obs/state mean/std from {stats_file}")
 
         self.reset()
 
     def get_obs(self, player_id: int = 0) -> List[np.ndarray]:
         if self._stats is not None:
             return [
-                preprocess_data(x, self._stats['obs_mean'],
-                                self._stats['obs_std'])
+                preprocess_data(x, self._stats["obs_mean"], self._stats["obs_std"])
                 for x in self._team_agent_features[player_id]
             ]
         else:
@@ -162,9 +171,9 @@ class WarGameSAWrapper:
 
     def get_state(self) -> np.ndarray:
         if self._stats is not None:
-            return preprocess_data(self._global_state,
-                                   self._stats['state_mean'],
-                                   self._stats['state_std'])
+            return preprocess_data(
+                self._global_state, self._stats["state_mean"], self._stats["state_std"]
+            )
         else:
             return self._global_state
 
@@ -218,62 +227,74 @@ class WarGameSAWrapper:
         self._map_height = si.map_height
         self._map_size = max(si.map_width, si.map_height)
         self._coord_max_v = self._map_size
-        self._coord_dim = get_number_feat_dim(self._coord_max_v,
-                                              self._n_decimal)
+        self._coord_dim = get_number_feat_dim(self._coord_max_v, self._n_decimal)
 
         for player_id in [PlayerID.RedTeam, PlayerID.BlueTeam]:
             # self._team_scene_info : Dict[PlayerID, SceneInfo]
             self._team_scene_info[player_id] = self._env.get_player_scene_info(
-                player_id)
+                player_id
+            )
             # self._team_n_units: Dict[PlayerID, Num_of_unit]
             self._team_n_units[player_id] = sum(
-                self._team_scene_info[player_id].
-                team_units_num_info[player_id].values())
+                self._team_scene_info[player_id].team_units_num_info[player_id].values()
+            )
             # self._team_usid: Dict[PlayerID, UnitStaticInfo]
-            self._team_usid[
-                player_id] = self._env.get_player_unit_static_info_dict(
-                    player_id)
+            self._team_usid[player_id] = self._env.get_player_unit_static_info_dict(
+                player_id
+            )
             # self._team_wsid: Dict[PlayerID, WeaponStaticInfo]
-            self._team_wsid[
-                player_id] = self._env.get_player_weapon_static_info_dict(
-                    player_id)
+            self._team_wsid[player_id] = self._env.get_player_weapon_static_info_dict(
+                player_id
+            )
             # self._team_unit_id2index: Dict[PlayerID, unit_id2_index]
-            self._team_unit_id2index[player_id] = dict([
-                (v, i) for i, v in enumerate(
-                    sorted(self._team_usid[player_id].keys()))
-            ])
+            self._team_unit_id2index[player_id] = dict(
+                [
+                    (v, i)
+                    for i, v in enumerate(sorted(self._team_usid[player_id].keys()))
+                ]
+            )
             # self._team_unit_index2id: Dict[PlayerID, unit_index2id]
-            self._team_unit_index2id[player_id] = dict([
-                (v, k) for k, v in self._team_unit_id2index[player_id].items()
-            ])
+            self._team_unit_index2id[player_id] = dict(
+                [(v, k) for k, v in self._team_unit_id2index[player_id].items()]
+            )
             # self._team_squad_id2index: Dict[PlayerID, squad_id2index]
-            self._team_squad_id2index[player_id] = dict([
-                (v, i) for i, v in enumerate(
-                    sorted(self._team_scene_info[player_id].
-                           team_squads[player_id].keys()))
-            ])
+            self._team_squad_id2index[player_id] = dict(
+                [
+                    (v, i)
+                    for i, v in enumerate(
+                        sorted(
+                            self._team_scene_info[player_id]
+                            .team_squads[player_id]
+                            .keys()
+                        )
+                    )
+                ]
+            )
             # self._team_squad_id2index: Dict[PlayerID, squad_index2id]
-            self._team_squad_index2id[player_id] = dict([
-                (v, k)
-                for k, v in self._team_squad_id2index[player_id].items()
-            ])
+            self._team_squad_index2id[player_id] = dict(
+                [(v, k) for k, v in self._team_squad_id2index[player_id].items()]
+            )
             # self._team_agent_features: Dict[PlayerID, List[None, None, ..., None]] Num_of_unit
             self._team_agent_features[player_id] = [
                 None,
             ] * self._team_n_units[player_id]
 
         # 最大运行时间
-        self._max_episode_time = self._team_scene_info[
-            PlayerID.RedTeam].max_time
+        self._max_episode_time = self._team_scene_info[PlayerID.RedTeam].max_time
         # 最大运行步数
         self._max_episode_steps = int(
-            self._team_scene_info[PlayerID.RedTeam].max_time /
-            self._params.delta_time / self._params.step_mul)
+            self._team_scene_info[PlayerID.RedTeam].max_time
+            / self._params.delta_time
+            / self._params.step_mul
+        )
         # 创建敌方智能体
         self._enemy_agent = create_agent_from_file(
-            'random_move', self._team_scene_info[self._enemy_player_id],
+            "random_move",
+            self._team_scene_info[self._enemy_player_id],
             self._team_usid[self._enemy_player_id],
-            self._team_wsid[self._enemy_player_id], self._enemy_player_id)
+            self._team_wsid[self._enemy_player_id],
+            self._enemy_player_id,
+        )
         self._enemy_agent.reset()
 
         for player_id in [PlayerID.RedTeam, PlayerID.BlueTeam]:
@@ -291,30 +312,35 @@ class WarGameSAWrapper:
                     self._team_has_alive_supply_unit[player_id] = True
 
         global_unit_static_ally = self.encode_team_units_static_feat(
-            self._ally_player_id)
+            self._ally_player_id
+        )
         global_unit_static_enemy = self.encode_team_units_static_feat(
-            self._enemy_player_id)
+            self._enemy_player_id
+        )
         global_unit_runtime_ally = self.encode_team_units_runtime_feat_v1(
-            self._ally_player_id)
+            self._ally_player_id
+        )
         global_unit_runtime_enemy = self.encode_team_units_runtime_feat_v1(
-            self._enemy_player_id)
+            self._enemy_player_id
+        )
 
-        self._global_state = np.array(global_unit_static_ally +
-                                      global_unit_runtime_ally +
-                                      global_unit_static_enemy +
-                                      global_unit_runtime_enemy).astype(
-                                          np.float32)
+        self._global_state = np.array(
+            global_unit_static_ally
+            + global_unit_runtime_ally
+            + global_unit_static_enemy
+            + global_unit_runtime_enemy
+        ).astype(np.float32)
 
         return self._global_state
 
     def get_env_info(self) -> Dict:
         return {
-            'n_actions': 13 + self._team_n_units[self._enemy_player_id],
-            'n_agents': self._team_n_units[self._ally_player_id],
-            'state_shape': self._global_state.shape[0],
-            'obs_shape': self.get_obs_size(),
-            'episode_limit': self._max_episode_steps,
-            'episode_time': self._max_episode_time,
+            "n_actions": 13 + self._team_n_units[self._enemy_player_id],
+            "n_agents": self._team_n_units[self._ally_player_id],
+            "state_shape": self._global_state.shape[0],
+            "obs_shape": self.get_obs_size(),
+            "episode_limit": self._max_episode_steps,
+            "episode_time": self._max_episode_time,
         }
 
     def step(self, actions: List[int], player_id: int = 0):
@@ -324,12 +350,13 @@ class WarGameSAWrapper:
         for unit_index, action in enumerate(actions):
             unit_id = self._team_unit_index2id[player_id][unit_index]
             ally_unit_actions[unit_id] = self.decode_action(
-                action, self._team_usid[player_id][unit_id],
+                action,
+                self._team_usid[player_id][unit_id],
                 self._team_obs[player_id].unit_runtime_info[unit_id],
-                player_id)
+                player_id,
+            )
 
-        enemy_action = self._enemy_agent.step(
-            self._team_obs[self._enemy_player_id])
+        enemy_action = self._enemy_agent.step(self._team_obs[self._enemy_player_id])
 
         # player_unit_actions
         # player_squad_actions
@@ -337,10 +364,12 @@ class WarGameSAWrapper:
             {
                 self._ally_player_id: ally_unit_actions,
                 self._enemy_player_id: enemy_action[0],
-            }, {
+            },
+            {
                 self._ally_player_id: {},
                 self._enemy_player_id: enemy_action[1],
-            })
+            },
+        )
 
         for player_id in [PlayerID.RedTeam, PlayerID.BlueTeam]:
             self._team_obs[player_id] = self._env.get_player_obs(player_id)
@@ -349,30 +378,38 @@ class WarGameSAWrapper:
                 self._update_obs_agent(i, player_id)
 
             for unit_id, usi in self._team_usid[player_id].items():
-                if usi.is_able_to_supply and \
-                        self._team_obs[player_id].unit_runtime_info[unit_id].cur_life > 0:
+                if (
+                    usi.is_able_to_supply
+                    and self._team_obs[player_id].unit_runtime_info[unit_id].cur_life
+                    > 0
+                ):
                     self._team_has_alive_supply_unit[player_id] = True
 
         global_unit_static_ally = self.encode_team_units_static_feat(
-            self._ally_player_id)
+            self._ally_player_id
+        )
         global_unit_static_enemy = self.encode_team_units_static_feat(
-            self._enemy_player_id)
+            self._enemy_player_id
+        )
         global_unit_runtime_ally = self.encode_team_units_runtime_feat_v1(
-            self._ally_player_id)
+            self._ally_player_id
+        )
         global_unit_runtime_enemy = self.encode_team_units_runtime_feat_v1(
-            self._enemy_player_id)
+            self._enemy_player_id
+        )
 
-        self._global_state = np.array(global_unit_static_ally +
-                                      global_unit_runtime_ally +
-                                      global_unit_static_enemy +
-                                      global_unit_runtime_enemy).astype(
-                                          np.float32)
+        self._global_state = np.array(
+            global_unit_static_ally
+            + global_unit_runtime_ally
+            + global_unit_static_enemy
+            + global_unit_runtime_enemy
+        ).astype(np.float32)
 
         ally_reward = self._env.get_player_cur_reward(self._ally_player_id)
         enemy_reward = self._env.get_player_cur_reward(self._enemy_player_id)
         done = self._env.is_game_terminated()
         info = {
-            'battle_won': done and ally_reward > enemy_reward,
+            "battle_won": done and ally_reward > enemy_reward,
         }
         return ally_reward, done, info
 
@@ -385,27 +422,26 @@ class WarGameSAWrapper:
         else:
             if usi.min_speed == 0:
                 return False
-            if uri.action_in_processing.loop_mode == PathLoopMode.LOOP_FROM_START and \
-                    uri.action_in_processing.code in (GameActionCode.MOVE_2D_ACTION, GameActionCode.MOVE_3D_ACTION):
+            if (
+                uri.action_in_processing.loop_mode == PathLoopMode.LOOP_FROM_START
+                and uri.action_in_processing.code
+                in (GameActionCode.MOVE_2D_ACTION, GameActionCode.MOVE_3D_ACTION)
+            ):
                 return True
             return False
 
-    def get_avail_agent_actions(self,
-                                agent_id: int,
-                                player_id: int = 0) -> List[int]:
+    def get_avail_agent_actions(self, agent_id: int, player_id: int = 0) -> List[int]:
         unit_id = self._team_unit_index2id[player_id][agent_id]
         usi = self._team_usid[player_id][unit_id]
         uri = self._team_obs[player_id].unit_runtime_info[unit_id]
         ssr = self._team_obs[player_id].sensor_scan_result
         # if uri.cur_life <= 0 or uri.cur_fuel <= 0 or (not self.is_unit_idle(usi, uri)):
         if uri.cur_life <= 0 or uri.cur_fuel <= 0:
-            avail_actions = [0] * (13 +
-                                   self._team_n_units[self._enemy_player_id])
+            avail_actions = [0] * (13 + self._team_n_units[self._enemy_player_id])
             avail_actions[0] = 1
             return avail_actions
         else:
-            avail_actions = [1] * (13 +
-                                   self._team_n_units[self._enemy_player_id])
+            avail_actions = [1] * (13 + self._team_n_units[self._enemy_player_id])
             if usi.max_speed == 0:
                 # disable move actions
                 avail_actions[5] = 0
@@ -423,9 +459,7 @@ class WarGameSAWrapper:
                 avail_actions[2] = 0
             if len(uri.cur_weapons) == 0 or sum(uri.cur_weapons.values()) == 0:
                 # disable attack actions
-                for i in range(
-                        13,
-                        13 + self._team_n_units[get_opposite_id(player_id)]):
+                for i in range(13, 13 + self._team_n_units[get_opposite_id(player_id)]):
                     avail_actions[i] = 0
 
             locked_enemy_unit_ids = set([ssdi.unit_id for ssdi in ssr])
@@ -433,8 +467,7 @@ class WarGameSAWrapper:
                 locked_enemy_unit_ids.remove(K_INVALID_GOBJECT_ID)
 
             for i in range(self._team_n_units[self._enemy_player_id]):
-                enemy_unit_id = self._team_unit_index2id[
-                    self._enemy_player_id][i]
+                enemy_unit_id = self._team_unit_index2id[self._enemy_player_id][i]
                 if enemy_unit_id in locked_enemy_unit_ids:
                     avail_actions[i + 13] = 1
                 else:
@@ -449,11 +482,14 @@ class WarGameSAWrapper:
 
             # disable get supply
             avail_actions[4] = 0
-            if not usi.is_able_to_supply and self._team_has_alive_supply_unit[
-                    self._ally_player_id]:
+            if (
+                not usi.is_able_to_supply
+                and self._team_has_alive_supply_unit[self._ally_player_id]
+            ):
                 if uri.cur_life < usi.total_life * MIN_SUPPLY_RATIO:
                     avail_actions = [0] * (
-                        13 + self._team_n_units[self._enemy_player_id])
+                        13 + self._team_n_units[self._enemy_player_id]
+                    )
                     avail_actions[4] = 1
                     return avail_actions
                 for k, v in uri.cur_weapons.items():
@@ -470,20 +506,23 @@ class WarGameSAWrapper:
             self._team_agent_features[player_id][unit_index][:] = 0
             return
         if self._team_agent_features[player_id][unit_index] is None:
-            feat_list = self.encode_unit_id(unit_id, self._team_unit_id2index[player_id]) + \
-                self.encode_unit_runtime_info(
-                    self._team_obs[player_id].unit_runtime_info[unit_id], player_id) + \
-                self.encode_team_destroyed_feat(player_id)
+            feat_list = (
+                self.encode_unit_id(unit_id, self._team_unit_id2index[player_id])
+                + self.encode_unit_runtime_info(
+                    self._team_obs[player_id].unit_runtime_info[unit_id], player_id
+                )
+                + self.encode_team_destroyed_feat(player_id)
+            )
             self._team_agent_features[player_id][unit_index] = np.array(
-                feat_list).astype(np.float32)
+                feat_list
+            ).astype(np.float32)
         else:
             # 复用之前的静态特征，只更新unit runtime特征和探测器扫描结果
             # self.encode_team_units_runtime_feat(player_id) + \
             rt_feat = self.encode_unit_runtime_info(
-                self._team_obs[player_id].unit_runtime_info[unit_id], player_id) + \
-                self.encode_team_destroyed_feat(player_id)
-            self._team_agent_features[player_id][unit_index][-len(rt_feat
-                                                                  ):] = rt_feat
+                self._team_obs[player_id].unit_runtime_info[unit_id], player_id
+            ) + self.encode_team_destroyed_feat(player_id)
+            self._team_agent_features[player_id][unit_index][-len(rt_feat) :] = rt_feat
 
     def encode_team_units_static_feat(self, player_id: int) -> List[float]:
         """Encoding the team units static feature map.
@@ -498,7 +537,8 @@ class WarGameSAWrapper:
         for unit_index in range(self._team_n_units[player_id]):
             unit_id = self._team_unit_index2id[player_id][unit_index]
             feat_list += self.encode_unit_static_info(
-                self._team_usid[player_id][unit_id], player_id)
+                self._team_usid[player_id][unit_id], player_id
+            )
         return feat_list
 
     def encode_team_units_runtime_feat_v1(self, player_id: int) -> List[float]:
@@ -514,8 +554,8 @@ class WarGameSAWrapper:
         for unit_index in range(self._team_n_units[player_id]):
             unit_id = self._team_unit_index2id[player_id][unit_index]
             feat_list += self.encode_unit_runtime_info(
-                self._team_obs[player_id].unit_runtime_info[unit_id],
-                player_id)
+                self._team_obs[player_id].unit_runtime_info[unit_id], player_id
+            )
         return feat_list
 
     def encode_team_units_runtime_feat_v2(self, player_id: int) -> List[float]:
@@ -532,15 +572,15 @@ class WarGameSAWrapper:
         for unit_index in range(self._team_n_units[player_id]):
             unit_id = self._team_unit_index2id[player_id][unit_index]
             feat_list += self.encode_unit_runtime_info(
-                self._team_obs[player_id].unit_runtime_info[unit_id],
-                player_id)
-            feat_list += self.encode_team_sensor_scan_feat_per_unit(
-                unit_id, player_id)
+                self._team_obs[player_id].unit_runtime_info[unit_id], player_id
+            )
+            feat_list += self.encode_team_sensor_scan_feat_per_unit(unit_id, player_id)
             feat_list += self.encode_ally_info(unit_id, player_id)
         return feat_list
 
-    def encode_team_sensor_scan_feat_per_unit(self, unit_id: int,
-                                              player_id: int) -> List[float]:
+    def encode_team_sensor_scan_feat_per_unit(
+        self, unit_id: int, player_id: int
+    ) -> List[float]:
         """Encoding the team sensor scan feature map per unit.
 
         Args:
@@ -561,12 +601,10 @@ class WarGameSAWrapper:
             if ssdi.unit_id == K_INVALID_GOBJECT_ID:
                 continue
 
-            if ssdi.unit_id not in self._team_unit_id2index[get_opposite_id(
-                    player_id)]:
+            if ssdi.unit_id not in self._team_unit_id2index[get_opposite_id(player_id)]:
                 # 如果探测到的是导弹，直接忽略
                 continue
-            i = self._team_unit_id2index[get_opposite_id(player_id)][
-                ssdi.unit_id]
+            i = self._team_unit_id2index[get_opposite_id(player_id)][ssdi.unit_id]
 
             feat[i * n_feat_ssdi] = ssdi.confidence
             is_critical_v = -1.0
@@ -579,12 +617,14 @@ class WarGameSAWrapper:
 
             k = i * n_feat_ssdi + 2
 
-            feat[k:k + self._coord_dim] = encode_large_float(
-                delta_x, self._coord_max_v)
+            feat[k : k + self._coord_dim] = encode_large_float(
+                delta_x, self._coord_max_v
+            )
             k += self._coord_dim
 
-            feat[k:k + self._coord_dim] = encode_large_float(
-                delta_y, self._coord_max_v)
+            feat[k : k + self._coord_dim] = encode_large_float(
+                delta_y, self._coord_max_v
+            )
             k += self._coord_dim
 
         return feat
@@ -603,37 +643,37 @@ class WarGameSAWrapper:
         n_feat_ssdi = 2 + n_enemy_units + 2 * self._coord_dim
 
         feat = [0.0] * n_feat_ssdi * n_max
-        for index, ssdi in enumerate(
-                self._team_obs[player_id].sensor_scan_result):
+        for index, ssdi in enumerate(self._team_obs[player_id].sensor_scan_result):
             # 目前只对精确锁定的单位进行编码
             if ssdi.unit_id == K_INVALID_GOBJECT_ID:
                 continue
 
-            if ssdi.unit_id not in self._team_unit_id2index[get_opposite_id(
-                    player_id)]:
+            if ssdi.unit_id not in self._team_unit_id2index[get_opposite_id(player_id)]:
                 # 如果探测到的是导弹，直接忽略
                 continue
-            i = self._team_unit_id2index[get_opposite_id(player_id)][
-                ssdi.unit_id]
+            i = self._team_unit_id2index[get_opposite_id(player_id)][ssdi.unit_id]
 
             feat[i * n_feat_ssdi] = ssdi.confidence
             is_critical_v = -1.0
             if ssdi.is_critical:
                 is_critical_v = float(ssdi.is_critical)
             feat[i * n_feat_ssdi + 1] = is_critical_v
-            feat[i * n_feat_ssdi + 2:i * n_feat_ssdi + 2 +
-                 n_enemy_units] = self.encode_unit_id(
-                     ssdi.unit_id,
-                     self._team_unit_id2index[get_opposite_id(player_id)])
+            feat[i * n_feat_ssdi + 2 : i * n_feat_ssdi + 2 + n_enemy_units] = (
+                self.encode_unit_id(
+                    ssdi.unit_id, self._team_unit_id2index[get_opposite_id(player_id)]
+                )
+            )
 
             k = i * n_feat_ssdi + 2 + n_enemy_units
 
-            feat[k:k + self._coord_dim] = encode_large_float(
-                ssdi.center.x, self._coord_max_v)
+            feat[k : k + self._coord_dim] = encode_large_float(
+                ssdi.center.x, self._coord_max_v
+            )
             k += self._coord_dim
 
-            feat[k:k + self._coord_dim] = encode_large_float(
-                ssdi.center.y, self._coord_max_v)
+            feat[k : k + self._coord_dim] = encode_large_float(
+                ssdi.center.y, self._coord_max_v
+            )
             k += self._coord_dim
 
         return feat
@@ -655,13 +695,10 @@ class WarGameSAWrapper:
             0,
         ] * self._team_n_units[get_opposite_id(player_id)]
         for unit_id in self._team_obs[player_id].enemy_units_destroyed:
-            feat[self._team_unit_id2index[get_opposite_id(player_id)]
-                 [unit_id]] = 1.0
+            feat[self._team_unit_id2index[get_opposite_id(player_id)][unit_id]] = 1.0
         return feat
 
-    def encode_game_mode(self,
-                         game_mode: str,
-                         mode_size: int = 3) -> List[float]:
+    def encode_game_mode(self, game_mode: str, mode_size: int = 3) -> List[float]:
         """Currently support 3 game modes:
 
             - destroy_all
@@ -675,11 +712,11 @@ class WarGameSAWrapper:
         Returns:
             List[float]: _description_
         """
-        if game_mode == 'destroy_all':
+        if game_mode == "destroy_all":
             return _simple_one_hot(index=0, size=mode_size)
-        elif game_mode == 'destroy_critical_target':
+        elif game_mode == "destroy_critical_target":
             return _simple_one_hot(index=1, size=mode_size)
-        elif game_mode == 'search_critical_target':
+        elif game_mode == "search_critical_target":
             return _simple_one_hot(index=2, size=mode_size)
         return _simple_one_hot(-1, 3)
 
@@ -697,13 +734,11 @@ class WarGameSAWrapper:
             index = -1
         else:
             if unit_id not in unit_id2index:
-                raise RuntimeError(
-                    f'unit_id {unit_id} not in record: {unit_id2index}')
+                raise RuntimeError(f"unit_id {unit_id} not in record: {unit_id2index}")
             index = unit_id2index[unit_id]
         return _simple_one_hot(index, size=len(unit_id2index))
 
-    def encode_squad_id(self, squad_id: int,
-                        squad_id2index: Dict) -> List[float]:
+    def encode_squad_id(self, squad_id: int, squad_id2index: Dict) -> List[float]:
         """Encode Squad id, info from `UnitStateInfo`
 
         Args:
@@ -714,14 +749,12 @@ class WarGameSAWrapper:
             List[float]: _description_
         """
         if squad_id not in squad_id2index:
-            raise RuntimeError(
-                f'squad_id {squad_id} not in record: {squad_id2index}')
-        return _simple_one_hot(index=squad_id2index[squad_id],
-                               size=len(squad_id2index))
+            raise RuntimeError(f"squad_id {squad_id} not in record: {squad_id2index}")
+        return _simple_one_hot(index=squad_id2index[squad_id], size=len(squad_id2index))
 
     def encode_object_type(
-            self, object_type: Union[ObjectType,
-                                     List[ObjectType]]) -> List[float]:
+        self, object_type: Union[ObjectType, List[ObjectType]]
+    ) -> List[float]:
         """Encode object type, support multiple object types, Currently support
         6 types:
 
@@ -820,8 +853,9 @@ class WarGameSAWrapper:
         ]
         return si_feat
 
-    def encode_unit_static_info(self, usi: UnitStaticInfo,
-                                player_id: int) -> List[float]:
+    def encode_unit_static_info(
+        self, usi: UnitStaticInfo, player_id: int
+    ) -> List[float]:
         """Encode unit static info for player_id.
 
         Args:
@@ -852,11 +886,13 @@ class WarGameSAWrapper:
             float(usi.is_able_to_supply),
             usi.supply_time / 3600.0,
         ]
-        usi_feat += self.encode_unit_id(usi.unit_id,
-                                        self._team_unit_id2index[player_id])
+        usi_feat += self.encode_unit_id(
+            usi.unit_id, self._team_unit_id2index[player_id]
+        )
         usi_feat += self.encode_object_type(usi.object_type)
-        usi_feat += self.encode_squad_id(usi.squad_id,
-                                         self._team_squad_id2index[player_id])
+        usi_feat += self.encode_squad_id(
+            usi.squad_id, self._team_squad_id2index[player_id]
+        )
         usi_feat += self.encode_object_type(usi.supply_object_types)
 
         # TODO: unit_type/model/weapons/sensors/supply_object_types
@@ -880,15 +916,17 @@ class WarGameSAWrapper:
 
         i = -1
         for ally_unit_id, ally_uri in self._team_obs[
-                player_id].unit_runtime_info.items():
+            player_id
+        ].unit_runtime_info.items():
             if ally_unit_id == unit_id:
                 continue
 
             i += 1
 
             k = i * n_ally_info_dim
-            feat_list[k:k + n_ally_units] = self.encode_unit_id(
-                ally_unit_id, self._team_unit_id2index[player_id])
+            feat_list[k : k + n_ally_units] = self.encode_unit_id(
+                ally_unit_id, self._team_unit_id2index[player_id]
+            )
             k += n_ally_units
 
             if ally_uri.cur_life <= 0:
@@ -901,19 +939,23 @@ class WarGameSAWrapper:
             delta_y = ally_uri.cur_pos.y - uri.cur_pos.y
             delta_z = ally_uri.cur_pos.z - uri.cur_pos.z
 
-            feat_list[k:k + self._coord_dim] = encode_large_float(
-                delta_x, self._coord_max_v)
+            feat_list[k : k + self._coord_dim] = encode_large_float(
+                delta_x, self._coord_max_v
+            )
             k += self._coord_dim
-            feat_list[k:k + self._coord_dim] = encode_large_float(
-                delta_y, self._coord_max_v)
+            feat_list[k : k + self._coord_dim] = encode_large_float(
+                delta_y, self._coord_max_v
+            )
             k += self._coord_dim
-            feat_list[k:k + self._height_dim] = encode_large_float(
-                delta_z, self._height_max_v)
+            feat_list[k : k + self._height_dim] = encode_large_float(
+                delta_z, self._height_max_v
+            )
 
         return feat_list
 
-    def encode_unit_runtime_info(self, uri: UnitRuntimeInfo,
-                                 player_id: int) -> List[float]:
+    def encode_unit_runtime_info(
+        self, uri: UnitRuntimeInfo, player_id: int
+    ) -> List[float]:
         """Encode unit runtime info for player_id.
 
         Args:
@@ -942,14 +984,17 @@ class WarGameSAWrapper:
             p = uri.cur_move_path[uri.cur_move_point_index]
             uri_feat[0] = 1
             k = 1
-            uri_feat[k:k + self._coord_dim] = encode_large_float(
-                p.x, self._coord_max_v)
+            uri_feat[k : k + self._coord_dim] = encode_large_float(
+                p.x, self._coord_max_v
+            )
             k += self._coord_dim
-            uri_feat[k:k + self._coord_dim] = encode_large_float(
-                p.y, self._coord_max_v)
+            uri_feat[k : k + self._coord_dim] = encode_large_float(
+                p.y, self._coord_max_v
+            )
             k += self._coord_dim
-            uri_feat[k:k + self._height_dim] = encode_large_float(
-                p.z, self._height_max_v)
+            uri_feat[k : k + self._height_dim] = encode_large_float(
+                p.z, self._height_max_v
+            )
 
         uri_feat += self.encode_alert_status(uri.alert_status)
         uri_feat += self.encode_supply_status(uri.supply_status)
@@ -963,11 +1008,12 @@ class WarGameSAWrapper:
     def get_obs_size(self):
         """Get observation size."""
         if self._team_agent_features[self._ally_player_id] is None:
-            raise RuntimeError('Can not get obs feature size before reset.')
+            raise RuntimeError("Can not get obs feature size before reset.")
         return self._team_agent_features[self._ally_player_id][0].shape[0]
 
-    def decode_action(self, action: int, usi: UnitStaticInfo,
-                      uri: UnitRuntimeInfo, player_id: int) -> GameAction:
+    def decode_action(
+        self, action: int, usi: UnitStaticInfo, uri: UnitRuntimeInfo, player_id: int
+    ) -> GameAction:
         """Decode action from action index.
 
         Args:
@@ -1044,56 +1090,56 @@ class WarGameSAWrapper:
             elif action == 9:
                 # north-east
                 raw_act.move_path = [
-                    Vector3(cur_pos.x + delta_d * 0.707,
-                            cur_pos.y + delta_d * 0.707),
+                    Vector3(cur_pos.x + delta_d * 0.707, cur_pos.y + delta_d * 0.707),
                 ]
             # 当前动作为 10 时, 向西北移动
             elif action == 10:
                 # north-west
                 raw_act.move_path = [
-                    Vector3(cur_pos.x - delta_d * 0.707,
-                            cur_pos.y + delta_d * 0.707),
+                    Vector3(cur_pos.x - delta_d * 0.707, cur_pos.y + delta_d * 0.707),
                 ]
             # 当前动作为 11 时, 向西南移动
             elif action == 11:
                 # south-west
                 raw_act.move_path = [
-                    Vector3(cur_pos.x - delta_d * 0.707,
-                            cur_pos.y - delta_d * 0.707),
+                    Vector3(cur_pos.x - delta_d * 0.707, cur_pos.y - delta_d * 0.707),
                 ]
             # 当前动作为 12 时, 向东南移动
             elif action == 12:
                 # south-east
                 raw_act.move_path = [
-                    Vector3(cur_pos.x + delta_d * 0.707,
-                            cur_pos.y - delta_d * 0.707),
+                    Vector3(cur_pos.x + delta_d * 0.707, cur_pos.y - delta_d * 0.707),
                 ]
         # 若当前动作大于 13
-        elif action >= 13 and action < 13 + self._team_n_units[get_opposite_id(
-                player_id)]:
+        elif (
+            action >= 13
+            and action < 13 + self._team_n_units[get_opposite_id(player_id)]
+        ):
             # 执行智能攻击指令， 自动跟踪和射击对方
             raw_act.code = GameActionCode.ATTACK_AND_FOLLOW_ACTION
-            raw_act.target_unit_id = self._team_unit_index2id[get_opposite_id(
-                player_id)][action - 13]
+            raw_act.target_unit_id = self._team_unit_index2id[
+                get_opposite_id(player_id)
+            ][action - 13]
             raw_act.desired_ammo_num = -1
         else:
             raise RuntimeError(
-                f'Invalid action {action}, max action value '
-                f'is {12 + self._team_n_units[get_opposite_id(player_id)]}')
+                f"Invalid action {action}, max action value "
+                f"is {12 + self._team_n_units[get_opposite_id(player_id)]}"
+            )
 
         return raw_act
 
 
-if __name__ == '__main__':
+if __name__ == "__main__":
     params = GameParams()
-    params.scene = 'destroy_all0'
+    params.scene = "destroy_all0"
     params.enable_rendering = False
     env = WarGameSAWrapper(params)
 
     env_info = env.get_env_info()
-    print(f'env_info={env_info}')
-    n_actions = env_info['n_actions']
-    n_agents = env_info['n_agents']
+    print(f"env_info={env_info}")
+    n_actions = env_info["n_actions"]
+    n_agents = env_info["n_agents"]
 
     agent_obs_list = env.get_obs(0)
 

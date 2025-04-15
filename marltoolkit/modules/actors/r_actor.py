@@ -62,10 +62,12 @@ class R_Actor(nn.Module):
 
         if self.use_recurrent_policy:
             actor_features, rnn_hidden_states = self.rnn(
-                actor_features, rnn_hidden_states, masks)
+                actor_features, rnn_hidden_states, masks
+            )
 
-        actions, action_log_probs = self.act(actor_features, available_actions,
-                                             deterministic)
+        actions, action_log_probs = self.act(
+            actor_features, available_actions, deterministic
+        )
 
         return actions, action_log_probs, rnn_hidden_states
 
@@ -95,17 +97,18 @@ class R_Actor(nn.Module):
 
         if self.use_recurrent_policy:
             actor_features, rnn_hidden_states = self.rnn(
-                actor_features, rnn_hidden_states, masks)
+                actor_features, rnn_hidden_states, masks
+            )
 
-        if self.algorithm_name == 'hatrpo':
+        if self.algorithm_name == "hatrpo":
             action_log_probs, dist_entropy, action_mu, action_std, all_probs = (
                 self.act.evaluate_actions_trpo(
                     actor_features,
                     action,
                     available_actions,
-                    active_masks=active_masks
-                    if self.use_policy_active_masks else None,
-                ))
+                    active_masks=active_masks if self.use_policy_active_masks else None,
+                )
+            )
 
             return action_log_probs, dist_entropy, action_mu, action_std, all_probs
         else:
@@ -113,8 +116,7 @@ class R_Actor(nn.Module):
                 actor_features,
                 action,
                 available_actions,
-                active_masks=active_masks
-                if self.use_policy_active_masks else None,
+                active_masks=active_masks if self.use_policy_active_masks else None,
             )
 
         return action_log_probs, dist_entropy

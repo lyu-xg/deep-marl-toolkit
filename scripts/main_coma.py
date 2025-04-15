@@ -6,7 +6,7 @@ import time
 import torch
 from torch.utils.tensorboard import SummaryWriter
 
-sys.path.append('../')
+sys.path.append("../")
 
 from configs.arguments import get_common_args
 from configs.coma_config import ComaConfig
@@ -15,10 +15,14 @@ from marltoolkit.data import ReplayBuffer
 from marltoolkit.envs.smacv1.smac_env import SMACWrapperEnv
 from marltoolkit.modules.actors import RNNActorModel
 from marltoolkit.modules.critics.coma import MLPCriticModel
-from marltoolkit.runners.episode_runner import (run_eval_episode,
-                                                run_train_episode)
-from marltoolkit.utils import (ProgressBar, TensorboardLogger, WandbLogger,
-                               get_outdir, get_root_logger)
+from marltoolkit.runners.episode_runner import run_eval_episode, run_train_episode
+from marltoolkit.utils import (
+    ProgressBar,
+    TensorboardLogger,
+    WandbLogger,
+    get_outdir,
+    get_root_logger,
+)
 
 
 def main():
@@ -33,8 +37,11 @@ def main():
     coma_config = ComaConfig()
     common_args = get_common_args()
     args = argparse.Namespace(**vars(common_args), **vars(coma_config))
-    device = (torch.device('cuda') if torch.cuda.is_available() and args.cuda
-              else torch.device('cpu'))
+    device = (
+        torch.device("cuda")
+        if torch.cuda.is_available() and args.cuda
+        else torch.device("cpu")
+    )
 
     env = SMACWrapperEnv(map_name=args.scenario, difficulty=args.difficulty)
     args.episode_limit = env.episode_limit
@@ -50,17 +57,17 @@ def main():
     args.device = device
 
     # init the logger before other steps
-    timestamp = time.strftime('%Y%m%d_%H%M%S', time.localtime())
+    timestamp = time.strftime("%Y%m%d_%H%M%S", time.localtime())
     # log
-    log_name = os.path.join(args.project, args.scenario, args.algo_name,
-                            timestamp).replace(os.path.sep, '_')
-    log_path = os.path.join(args.log_dir, args.project, args.scenario,
-                            args.algo_name)
-    tensorboard_log_path = get_outdir(log_path, 'tensorboard_log_dir')
-    log_file = os.path.join(log_path, log_name + '.log')
-    text_logger = get_root_logger(log_file=log_file, log_level='INFO')
+    log_name = os.path.join(
+        args.project, args.scenario, args.algo_name, timestamp
+    ).replace(os.path.sep, "_")
+    log_path = os.path.join(args.log_dir, args.project, args.scenario, args.algo_name)
+    tensorboard_log_path = get_outdir(log_path, "tensorboard_log_dir")
+    log_file = os.path.join(log_path, log_name + ".log")
+    text_logger = get_root_logger(log_file=log_file, log_level="INFO")
 
-    if args.logger == 'wandb':
+    if args.logger == "wandb":
         logger = WandbLogger(
             train_interval=args.train_log_interval,
             test_interval=args.test_log_interval,
@@ -71,8 +78,8 @@ def main():
             config=args,
         )
     writer = SummaryWriter(tensorboard_log_path)
-    writer.add_text('args', str(args))
-    if args.logger == 'tensorboard':
+    writer.add_text("args", str(args))
+    if args.logger == "tensorboard":
         logger = TensorboardLogger(writer)
     else:  # wandb
         logger.load(writer)
@@ -129,45 +136,47 @@ def main():
         train_res_dict = run_train_episode(env, agent, rpm, args)
         # update episodes and steps
         episode_cnt += 1
-        steps_cnt += train_res_dict['episode_step']
+        steps_cnt += train_res_dict["episode_step"]
 
         # learning rate decay
         agent.learning_rate = max(
-            agent.lr_scheduler.step(train_res_dict['episode_step']),
+            agent.lr_scheduler.step(train_res_dict["episode_step"]),
             agent.min_learning_rate,
         )
 
-        train_res_dict.update({
-            'exploration': agent.exploration,
-            'learning_rate': agent.learning_rate,
-            'replay_max_size': rpm.size(),
-            'target_update_count': agent.target_update_count,
-        })
+        train_res_dict.update(
+            {
+                "exploration": agent.exploration,
+                "learning_rate": agent.learning_rate,
+                "replay_max_size": rpm.size(),
+                "target_update_count": agent.target_update_count,
+            }
+        )
         if episode_cnt % args.train_log_interval == 0:
             text_logger.info(
-                '[Train], episode: {}, train_episode_step: {}, train_win_rate: {:.2f}, train_reward: {:.2f}'
-                .format(
+                "[Train], episode: {}, train_episode_step: {}, train_win_rate: {:.2f}, train_reward: {:.2f}".format(
                     episode_cnt,
-                    train_res_dict['episode_step'],
-                    train_res_dict['win_rate'],
-                    train_res_dict['episode_reward'],
-                ))
+                    train_res_dict["episode_step"],
+                    train_res_dict["win_rate"],
+                    train_res_dict["episode_reward"],
+                )
+            )
             logger.log_train_data(train_res_dict, steps_cnt)
 
         if episode_cnt % args.test_log_interval == 0:
             eval_res_dict = run_eval_episode(env, agent, args=args)
             text_logger.info(
-                '[Eval], episode: {}, eval_episode_step:{:.2f}, eval_win_rate: {:.2f}, eval_reward: {:.2f}'
-                .format(
+                "[Eval], episode: {}, eval_episode_step:{:.2f}, eval_win_rate: {:.2f}, eval_reward: {:.2f}".format(
                     episode_cnt,
-                    eval_res_dict['episode_step'],
-                    eval_res_dict['win_rate'],
-                    eval_res_dict['episode_reward'],
-                ))
+                    eval_res_dict["episode_step"],
+                    eval_res_dict["win_rate"],
+                    eval_res_dict["episode_reward"],
+                )
+            )
             logger.log_test_data(eval_res_dict, steps_cnt)
 
-        progress_bar.update(train_res_dict['episode_step'])
+        progress_bar.update(train_res_dict["episode_step"])
 
 
-if __name__ == '__main__':
+if __name__ == "__main__":
     main()

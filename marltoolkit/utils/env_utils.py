@@ -13,10 +13,10 @@ def make_vec_env(
 ):
 
     def make_env():
-        if env_id == 'SMAC-v1':
+        if env_id == "SMAC-v1":
             env = SMACWrapperEnv(map_name, **kwargs)
         else:
-            raise ValueError(f'Unknown environment: {env_id}')
+            raise ValueError(f"Unknown environment: {env_id}")
         return env
 
     train_envs = SubprocVecEnv([make_env for _ in range(num_train_envs)])
@@ -62,9 +62,9 @@ def get_critic_input_dim(args: argparse.Namespace) -> None:
 
 
 def get_shape_from_obs_space(obs_space):
-    if obs_space.__class__.__name__ == 'Box':
+    if obs_space.__class__.__name__ == "Box":
         obs_shape = obs_space.shape
-    elif obs_space.__class__.__name__ == 'Tuple':
+    elif obs_space.__class__.__name__ == "Tuple":
         obs_shape = obs_space
     else:
         raise NotImplementedError
@@ -72,13 +72,13 @@ def get_shape_from_obs_space(obs_space):
 
 
 def get_shape_from_act_space(act_space):
-    if act_space.__class__.__name__ == 'Discrete':
+    if act_space.__class__.__name__ == "Discrete":
         act_shape = 1
-    elif act_space.__class__.__name__ == 'MultiDiscrete':
+    elif act_space.__class__.__name__ == "MultiDiscrete":
         act_shape = act_space.shape
-    elif act_space.__class__.__name__ == 'Box':
+    elif act_space.__class__.__name__ == "Box":
         act_shape = act_space.shape[0]
-    elif act_space.__class__.__name__ == 'MultiBinary':
+    elif act_space.__class__.__name__ == "MultiBinary":
         act_shape = act_space.shape[0]
     else:  # agar
         act_shape = act_space[0].shape[0] + 1

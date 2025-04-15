@@ -61,27 +61,30 @@ class WandbLogger(BaseLogger):
         config: Optional[argparse.Namespace] = None,
         monitor_gym: bool = True,
     ) -> None:
-        super().__init__(train_interval, test_interval, update_interval,
-                         info_interval)
+        super().__init__(train_interval, test_interval, update_interval, info_interval)
         self.last_save_step = -1
         self.save_interval = save_interval
         self.write_flush = write_flush
         self.restored = False
         if project is None:
-            project = os.getenv('WANDB_PROJECT', 'marltoolkit')
+            project = os.getenv("WANDB_PROJECT", "marltoolkit")
 
-        self.wandb_run = wandb.init(
-            dir=dir,
-            project=project,
-            name=name,
-            id=run_id,
-            resume='allow',
-            entity=entity,
-            sync_tensorboard=True,
-            monitor_gym=monitor_gym,
-            config=config,  # type: ignore
-        ) if not wandb.run else wandb.run
-        self.wandb_run._label(repo='marltoolkit')  # type: ignore
+        self.wandb_run = (
+            wandb.init(
+                dir=dir,
+                project=project,
+                name=name,
+                id=run_id,
+                resume="allow",
+                entity=entity,
+                sync_tensorboard=True,
+                monitor_gym=monitor_gym,
+                config=config,  # type: ignore
+            )
+            if not wandb.run
+            else wandb.run
+        )
+        self.wandb_run._label(repo="marltoolkit")  # type: ignore
         self.tensorboard_logger: Optional[TensorboardLogger] = None
 
     def load(self, writer: SummaryWriter) -> None:
@@ -98,8 +101,9 @@ class WandbLogger(BaseLogger):
     def write(self, step_type: str, step: int, data: LOG_DATA_TYPE) -> None:
         if self.tensorboard_logger is None:
             raise Exception(
-                '`logger` needs to load the Tensorboard Writer before '
-                'writing data. Try `logger.load(SummaryWriter(log_path))`')
+                "`logger` needs to load the Tensorboard Writer before "
+                "writing data. Try `logger.load(SummaryWriter(log_path))`"
+            )
         else:
             self.tensorboard_logger.write(step_type, step, data)
 
@@ -121,39 +125,40 @@ class WandbLogger(BaseLogger):
         """
         if save_checkpoint_fn and epoch - self.last_save_step >= self.save_interval:
             self.last_save_step = epoch
-            checkpoint_path = save_checkpoint_fn(epoch, env_step,
-                                                 gradient_step)
+            checkpoint_path = save_checkpoint_fn(epoch, env_step, gradient_step)
 
             checkpoint_artifact = wandb.Artifact(
-                'run_' + self.wandb_run.id + '_checkpoint',  # type: ignore
-                type='model',
+                "run_" + self.wandb_run.id + "_checkpoint",  # type: ignore
+                type="model",
                 metadata={
-                    'save/epoch': epoch,
-                    'save/env_step': env_step,
-                    'save/gradient_step': gradient_step,
-                    'checkpoint_path': str(checkpoint_path),
-                })
+                    "save/epoch": epoch,
+                    "save/env_step": env_step,
+                    "save/gradient_step": gradient_step,
+                    "checkpoint_path": str(checkpoint_path),
+                },
+            )
             checkpoint_artifact.add_file(str(checkpoint_path))
             self.wandb_run.log_artifact(checkpoint_artifact)  # type: ignore
 
     def restore_data(self) -> Tuple[int, int, int]:
         checkpoint_artifact = self.wandb_run.use_artifact(  # type: ignore
-            f'run_{self.wandb_run.id}_checkpoint:latest'  # type: ignore
+            f"run_{self.wandb_run.id}_checkpoint:latest"  # type: ignore
         )
         assert checkpoint_artifact is not None, "W&B dataset artifact doesn't exist"
 
         checkpoint_artifact.download(
-            os.path.dirname(checkpoint_artifact.metadata['checkpoint_path']))
+            os.path.dirname(checkpoint_artifact.metadata["checkpoint_path"])
+        )
 
         try:  # epoch / gradient_step
-            epoch = checkpoint_artifact.metadata['save/epoch']
+            epoch = checkpoint_artifact.metadata["save/epoch"]
             self.last_save_step = self.last_log_test_step = epoch
-            gradient_step = checkpoint_artifact.metadata['save/gradient_step']
+            gradient_step = checkpoint_artifact.metadata["save/gradient_step"]
             self.last_log_update_step = gradient_step
         except KeyError:
             epoch, gradient_step = 0, 0
         try:  # offline trainer doesn't have env_step
-            env_step = checkpoint_artifact.metadata['save/env_step']
+            env_step = checkpoint_artifact.metadata["save/env_step"]
             self.last_log_train_step = env_step
         except KeyError:
             env_step = 0

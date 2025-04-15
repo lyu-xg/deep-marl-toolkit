@@ -1,5 +1,6 @@
 """Code Reference Tianshou https://github.com/thu-
 ml/tianshou/tree/master/tianshou/utils/logger."""
+
 from abc import ABC, abstractmethod
 from numbers import Number
 from typing import Callable, Dict, Optional, Tuple, Union
@@ -51,8 +52,8 @@ class BaseLogger(ABC):
         :param int step: stands for the timestep the collect_result being logged.
         """
         if step - self.last_log_train_step >= self.train_interval:
-            log_data = {f'train/{k}': v for k, v in collect_result.items()}
-            self.write('train/env_step', step, log_data)
+            log_data = {f"train/{k}": v for k, v in collect_result.items()}
+            self.write("train/env_step", step, log_data)
             self.last_log_train_step = step
 
     def log_test_data(self, collect_result: dict, step: int) -> None:
@@ -63,8 +64,8 @@ class BaseLogger(ABC):
         :param int step: stands for the timestep the collect_result being logged.
         """
         if step - self.last_log_test_step >= self.test_interval:
-            log_data = {f'test/{k}': v for k, v in collect_result.items()}
-            self.write('test/env_step', step, log_data)
+            log_data = {f"test/{k}": v for k, v in collect_result.items()}
+            self.write("test/env_step", step, log_data)
             self.last_log_test_step = step
 
     def log_update_data(self, update_result: dict, step: int) -> None:
@@ -75,8 +76,8 @@ class BaseLogger(ABC):
         :param int step: stands for the timestep the collect_result being logged.
         """
         if step - self.last_log_update_step >= self.update_interval:
-            log_data = {f'update/{k}': v for k, v in update_result.items()}
-            self.write('update/gradient_step', step, log_data)
+            log_data = {f"update/{k}": v for k, v in update_result.items()}
+            self.write("update/gradient_step", step, log_data)
             self.last_log_update_step = step
 
     @abstractmethod

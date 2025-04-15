@@ -51,8 +51,10 @@ class MAPPOAgent(BaseAgent):
         self.critic_model: R_Critic = R_Critic(args).to(self.device)
 
         assert (
-            (self.use_popart and self.use_valuenorm) is False
-        ), 'self.use_popart and self.use_valuenorm can not be set True simultaneously'
+            self.use_popart and self.use_valuenorm
+        ) is False, (
+            "self.use_popart and self.use_valuenorm can not be set True simultaneously"
+        )
 
         if self.use_popart:
             self.value_normalizer = self.critic_model.v_out
@@ -105,10 +107,12 @@ class MAPPOAgent(BaseAgent):
             :return critic_rnn_states: (torch.Tensor) updated critic network RNN states.
         """
         actions, action_log_probs, actor_rnn_states = self.actor_model.forward(
-            obs, masks, available_actions, actor_rnn_states, deterministic)
+            obs, masks, available_actions, actor_rnn_states, deterministic
+        )
 
         values, critic_rnn_states = self.critic_model.forward(
-            state, masks, critic_rnn_states)
+            state, masks, critic_rnn_states
+        )
         return values, actions, action_log_probs, actor_rnn_states, critic_rnn_states
 
     def get_values(
@@ -158,8 +162,8 @@ class MAPPOAgent(BaseAgent):
         :return dist_entropy: (torch.Tensor) action distribution entropy for the given inputs.
         """
         action_log_probs, dist_entropy = self.actor_model.evaluate_actions(
-            obs, action, masks, active_masks, available_actions,
-            actor_rnn_states)
+            obs, action, masks, active_masks, available_actions, actor_rnn_states
+        )
 
         values, _ = self.critic_model.forward(state, masks, critic_rnn_states)
         return values, action_log_probs, dist_entropy
@@ -182,7 +186,8 @@ class MAPPOAgent(BaseAgent):
         :param deterministic: (bool) whether the action should be mode of distribution or should be sampled.
         """
         actions, _, actor_rnn_states = self.actor_model.forward(
-            obs, masks, available_actions, actor_rnn_states, deterministic)
+            obs, masks, available_actions, actor_rnn_states, deterministic
+        )
         return actions, actor_rnn_states
 
     def cal_value_loss(
@@ -201,15 +206,15 @@ class MAPPOAgent(BaseAgent):
 
         :return value_loss: (torch.Tensor) value function loss.
         """
-        value_pred_clipped = value_preds_batch + (
-            values - value_preds_batch).clamp(-self.clip_param,
-                                              self.clip_param)
+        value_pred_clipped = value_preds_batch + (values - value_preds_batch).clamp(
+            -self.clip_param, self.clip_param
+        )
         if self.use_popart or self.use_valuenorm:
             self.value_normalizer.update(return_batch)
-            error_clipped = (self.value_normalizer.normalize(return_batch) -
-                             value_pred_clipped)
-            error_original = self.value_normalizer.normalize(
-                return_batch) - values
+            error_clipped = (
+                self.value_normalizer.normalize(return_batch) - value_pred_clipped
+            )
+            error_original = self.value_normalizer.normalize(return_batch) - values
         else:
             error_clipped = return_batch - value_pred_clipped
             error_original = return_batch - values
@@ -227,8 +232,9 @@ class MAPPOAgent(BaseAgent):
             value_loss = value_loss_original
 
         if self.use_value_active_masks:
-            value_loss = (value_loss *
-                          active_masks_batch).sum() / active_masks_batch.sum()
+            value_loss = (
+                value_loss * active_masks_batch
+            ).sum() / active_masks_batch.sum()
         else:
             value_loss = value_loss.mean()
 
@@ -281,16 +287,20 @@ class MAPPOAgent(BaseAgent):
         imp_weights = torch.exp(action_log_probs - old_action_log_probs_batch)
 
         surr1 = imp_weights * adv_targ
-        surr2 = (torch.clamp(imp_weights, 1.0 - self.clip_param,
-                             1.0 + self.clip_param) * adv_targ)
+        surr2 = (
+            torch.clamp(imp_weights, 1.0 - self.clip_param, 1.0 + self.clip_param)
+            * adv_targ
+        )
 
         if self.use_policy_active_masks:
             policy_action_loss = (
-                -torch.sum(torch.min(surr1, surr2), dim=-1, keepdim=True) *
-                active_masks_batch).sum() / active_masks_batch.sum()
+                -torch.sum(torch.min(surr1, surr2), dim=-1, keepdim=True)
+                * active_masks_batch
+            ).sum() / active_masks_batch.sum()
         else:
             policy_action_loss = -torch.sum(
-                torch.min(surr1, surr2), dim=-1, keepdim=True).mean()
+                torch.min(surr1, surr2), dim=-1, keepdim=True
+            ).mean()
 
         policy_loss = policy_action_loss
 
@@ -301,15 +311,17 @@ class MAPPOAgent(BaseAgent):
 
         if self.use_max_grad_norm:
             actor_grad_norm = nn.utils.clip_grad_norm_(
-                self.actor_model.parameters(), self.max_grad_norm)
+                self.actor_model.parameters(), self.max_grad_norm
+            )
         else:
             actor_grad_norm = get_gard_norm(self.actor_model.parameters())
 
         self.actor_optimizer.step()
 
         # critic update
-        value_loss = self.cal_value_loss(values, value_preds_batch,
-                                         return_batch, active_masks_batch)
+        value_loss = self.cal_value_loss(
+            values, value_preds_batch, return_batch, active_masks_batch
+        )
 
         self.critic_optimizer.zero_grad()
 
@@ -317,7 +329,8 @@ class MAPPOAgent(BaseAgent):
 
         if self.use_max_grad_norm:
             critic_grad_norm = nn.utils.clip_grad_norm_(
-                self.critic_model.parameters(), self.max_grad_norm)
+                self.critic_model.parameters(), self.max_grad_norm
+            )
         else:
             critic_grad_norm = get_gard_norm(self.critic_model.parameters())
 
@@ -341,9 +354,9 @@ class MAPPOAgent(BaseAgent):
         :return train_info: (dict) contains information regarding training update (e.g. loss, grad norms, etc).
         """
         if self.use_popart or self.use_valuenorm:
-            advantages = buffer.returns[:
-                                        -1] - self.value_normalizer.denormalize(
-                                            buffer.value_preds[:-1])
+            advantages = buffer.returns[:-1] - self.value_normalizer.denormalize(
+                buffer.value_preds[:-1]
+            )
         else:
             advantages = buffer.returns[:-1] - buffer.value_preds[:-1]
         advantages_copy = advantages.copy()
@@ -354,20 +367,22 @@ class MAPPOAgent(BaseAgent):
 
         train_info = {}
 
-        train_info['value_loss'] = 0
-        train_info['policy_loss'] = 0
-        train_info['dist_entropy'] = 0
-        train_info['actor_grad_norm'] = 0
-        train_info['critic_grad_norm'] = 0
-        train_info['ratio'] = 0
+        train_info["value_loss"] = 0
+        train_info["policy_loss"] = 0
+        train_info["dist_entropy"] = 0
+        train_info["actor_grad_norm"] = 0
+        train_info["critic_grad_norm"] = 0
+        train_info["ratio"] = 0
 
         for _ in range(self.ppo_epoch):
             if self.use_recurrent_policy:
                 data_generator = buffer.recurrent_generator(
-                    advantages, self.num_mini_batch, self.data_chunk_length)
+                    advantages, self.num_mini_batch, self.data_chunk_length
+                )
 
             data_generator = buffer.feed_forward_generator(
-                advantages, self.num_mini_batch)
+                advantages, self.num_mini_batch
+            )
 
             for batch_data in data_generator:
                 (
@@ -379,12 +394,12 @@ class MAPPOAgent(BaseAgent):
                     imp_weights,
                 ) = self.ppo_update(batch_data, update_actor)
 
-                train_info['policy_loss'] += policy_loss.item()
-                train_info['value_loss'] += value_loss.item()
-                train_info['dist_entropy'] += dist_entropy.item()
-                train_info['actor_grad_norm'] += actor_grad_norm
-                train_info['critic_grad_norm'] += critic_grad_norm
-                train_info['ratio'] += imp_weights.mean()
+                train_info["policy_loss"] += policy_loss.item()
+                train_info["value_loss"] += value_loss.item()
+                train_info["dist_entropy"] += dist_entropy.item()
+                train_info["actor_grad_norm"] += actor_grad_norm
+                train_info["critic_grad_norm"] += critic_grad_norm
+                train_info["ratio"] += imp_weights.mean()
 
         num_updates = self.ppo_epoch * self.num_mini_batch
 

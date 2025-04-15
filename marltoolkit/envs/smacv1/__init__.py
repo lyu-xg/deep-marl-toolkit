@@ -1,3 +1,3 @@
 from .smac_env import SMACWrapperEnv
 
-__all__ = ['SMACWrapperEnv']
+__all__ = ["SMACWrapperEnv"]

@@ -178,443 +178,423 @@ def get_common_args() -> argparse.Namespace:
 
     # prepare parameters
     parser.add_argument(
-        '--algorithm_name',
+        "--algorithm_name",
         type=str,
-        default='rmappo',
-        choices=['rmappo', 'mappo', 'happo', 'hatrpo', 'mat', 'mat_dec'],
+        default="rmappo",
+        choices=["rmappo", "mappo", "happo", "hatrpo", "mat", "mat_dec"],
     )
-    parser.add_argument('--seed',
-                        type=int,
-                        default=123,
-                        help='random seed for numpy/torch')
     parser.add_argument(
-        '--cuda',
-        action='store_false',
+        "--seed", type=int, default=123, help="random seed for numpy/torch"
+    )
+    parser.add_argument(
+        "--cuda",
+        action="store_false",
         default=True,
-        help='by default True, will use GPU to train; or else will use CPU;',
+        help="by default True, will use GPU to train; or else will use CPU;",
     )
     parser.add_argument(
-        '--cuda_deterministic',
-        action='store_false',
+        "--cuda_deterministic",
+        action="store_false",
         default=True,
-        help=
-        'by default, make sure random seed effective. if set, bypass such function.',
+        help="by default, make sure random seed effective. if set, bypass such function.",
     )
     parser.add_argument(
-        '--n_training_threads',
+        "--n_training_threads",
         type=int,
         default=1,
-        help='Number of torch threads for training',
+        help="Number of torch threads for training",
     )
     parser.add_argument(
-        '--n_eval_threads',
+        "--n_eval_threads",
         type=int,
         default=1,
-        help='Number of torch threads for  evaluating',
+        help="Number of torch threads for  evaluating",
     )
     parser.add_argument(
-        '--total_steps',
+        "--total_steps",
         type=int,
         default=10e6,
-        help='Number of environment steps to train (default: 10e6)',
+        help="Number of environment steps to train (default: 10e6)",
     )
 
     # The Environment setting
     parser.add_argument(
-        '--project',
+        "--project",
         type=str,
-        default='StarCraft2',
-        help='The project which env is in',
+        default="StarCraft2",
+        help="The project which env is in",
     )
-    parser.add_argument('--env_name',
-                        type=str,
-                        default='SMAC-v1',
-                        help='the map of the game')
-    parser.add_argument('--map_name',
-                        type=str,
-                        default='3m',
-                        help='the map of the game')
-    parser.add_argument('--difficulty',
-                        type=str,
-                        default='7',
-                        help='Difficulty of the environment.')
-    parser.add_argument('--delta_time',
-                        type=float,
-                        default=1,
-                        help='delta time per step')
-    parser.add_argument('--step_mul',
-                        type=int,
-                        default=8,
-                        help='how many steps to make an action')
     parser.add_argument(
-        '--num_train_envs',
+        "--env_name", type=str, default="SMAC-v1", help="the map of the game"
+    )
+    parser.add_argument(
+        "--map_name", type=str, default="3m", help="the map of the game"
+    )
+    parser.add_argument(
+        "--difficulty", type=str, default="7", help="Difficulty of the environment."
+    )
+    parser.add_argument(
+        "--delta_time", type=float, default=1, help="delta time per step"
+    )
+    parser.add_argument(
+        "--step_mul", type=int, default=8, help="how many steps to make an action"
+    )
+    parser.add_argument(
+        "--num_train_envs",
         type=int,
         default=1,
-        help='Num of parallel threads running the env',
+        help="Num of parallel threads running the env",
     )
     parser.add_argument(
-        '--num_test_envs',
+        "--num_test_envs",
         type=int,
         default=1,
-        help='Num of parallel threads running the env',
+        help="Num of parallel threads running the env",
     )
     parser.add_argument(
-        '--use_global_state',
+        "--use_global_state",
         type=bool,
         default=False,
-        help='whether to use the global state',
+        help="whether to use the global state",
     )
     parser.add_argument(
-        '--use_last_actions',
+        "--use_last_actions",
         type=bool,
         default=True,
-        help='whether to use the last action',
+        help="whether to use the last action",
     )
     parser.add_argument(
-        '--use_agents_id_onehot',
+        "--use_agents_id_onehot",
         type=bool,
         default=True,
-        help='whether to use the agent id transform',
+        help="whether to use the agent id transform",
     )
 
     # network parameters
     parser.add_argument(
-        '--share_policy',
-        action='store_false',
+        "--share_policy",
+        action="store_false",
         default=True,
-        help='Whether agent share the same policy',
+        help="Whether agent share the same policy",
     )
     parser.add_argument(
-        '--use_centralized_v',
-        action='store_false',
+        "--use_centralized_v",
+        action="store_false",
         default=True,
-        help='Whether to use centralized V function',
+        help="Whether to use centralized V function",
     )
     parser.add_argument(
-        '--stacked_frames',
+        "--stacked_frames",
         type=int,
         default=1,
-        help='Dimension of hidden layers for actor/critic networks',
+        help="Dimension of hidden layers for actor/critic networks",
     )
     parser.add_argument(
-        '--use_stacked_frames',
-        action='store_true',
+        "--use_stacked_frames",
+        action="store_true",
         default=False,
-        help='Whether to use stacked_frames',
+        help="Whether to use stacked_frames",
     )
     parser.add_argument(
-        '--hidden_size',
+        "--hidden_size",
         type=int,
         default=64,
-        help='Dimension of hidden layers for actor/critic networks',
+        help="Dimension of hidden layers for actor/critic networks",
     )
-    parser.add_argument('--activation',
-                        default='relu',
-                        help='Whether to use ReLU')
+    parser.add_argument("--activation", default="relu", help="Whether to use ReLU")
     parser.add_argument(
-        '--use_popart',
-        action='store_true',
+        "--use_popart",
+        action="store_true",
         default=False,
-        help='by default False, use PopArt to normalize rewards.',
+        help="by default False, use PopArt to normalize rewards.",
     )
     parser.add_argument(
-        '--use_valuenorm',
-        action='store_false',
+        "--use_valuenorm",
+        action="store_false",
         default=True,
-        help='by default True, use running mean and std to normalize rewards.',
+        help="by default True, use running mean and std to normalize rewards.",
     )
     parser.add_argument(
-        '--use_feature_normalization',
-        action='store_false',
+        "--use_feature_normalization",
+        action="store_false",
         default=True,
-        help='Whether to apply layernorm to the inputs',
+        help="Whether to apply layernorm to the inputs",
     )
     parser.add_argument(
-        '--use_orthogonal',
-        action='store_false',
+        "--use_orthogonal",
+        action="store_false",
         default=True,
-        help=
-        'Whether to use Orthogonal initialization for weights and 0 initialization for biases',
+        help="Whether to use Orthogonal initialization for weights and 0 initialization for biases",
     )
-    parser.add_argument('--gain',
-                        type=float,
-                        default=0.01,
-                        help='The gain # of last action layer')
+    parser.add_argument(
+        "--gain", type=float, default=0.01, help="The gain # of last action layer"
+    )
 
     # recurrent parameters
     parser.add_argument(
-        '--use_naive_recurrent_policy',
-        action='store_true',
+        "--use_naive_recurrent_policy",
+        action="store_true",
         default=False,
-        help='Whether to use a naive recurrent policy',
+        help="Whether to use a naive recurrent policy",
     )
     parser.add_argument(
-        '--use_recurrent_policy',
-        action='store_false',
+        "--use_recurrent_policy",
+        action="store_false",
         default=True,
-        help='use a recurrent policy',
+        help="use a recurrent policy",
     )
-    parser.add_argument('--rnn_layers',
-                        type=int,
-                        default=2,
-                        help='The number of recurrent layers.')
     parser.add_argument(
-        '--data_chunk_length',
+        "--rnn_layers", type=int, default=2, help="The number of recurrent layers."
+    )
+    parser.add_argument(
+        "--data_chunk_length",
         type=int,
         default=10,
-        help='Time length of chunks used to train a recurrent_policy',
+        help="Time length of chunks used to train a recurrent_policy",
     )
     # trpo parameters
     parser.add_argument(
-        '--kl_threshold',
+        "--kl_threshold",
         type=float,
         default=0.01,
-        help='the threshold of kl-divergence (default: 0.01)',
+        help="the threshold of kl-divergence (default: 0.01)",
     )
-    parser.add_argument('--ls_step',
-                        type=int,
-                        default=10,
-                        help='number of line search (default: 10)')
     parser.add_argument(
-        '--accept_ratio',
+        "--ls_step", type=int, default=10, help="number of line search (default: 10)"
+    )
+    parser.add_argument(
+        "--accept_ratio",
         type=float,
         default=0.5,
-        help='accept ratio of loss improve (default: 0.5)',
+        help="accept ratio of loss improve (default: 0.5)",
     )
 
     # ppo parameters
-    parser.add_argument('--ppo_epoch',
-                        type=int,
-                        default=15,
-                        help='number of ppo epochs (default: 15)')
     parser.add_argument(
-        '--use_clipped_value_loss',
-        action='store_false',
-        default=True,
-        help='by default, clip loss value. If set, do not clip loss value.',
+        "--ppo_epoch", type=int, default=15, help="number of ppo epochs (default: 15)"
     )
     parser.add_argument(
-        '--clip_param',
+        "--use_clipped_value_loss",
+        action="store_false",
+        default=True,
+        help="by default, clip loss value. If set, do not clip loss value.",
+    )
+    parser.add_argument(
+        "--clip_param",
         type=float,
         default=0.2,
-        help='ppo clip parameter (default: 0.2)',
+        help="ppo clip parameter (default: 0.2)",
     )
     parser.add_argument(
-        '--num_mini_batch',
+        "--num_mini_batch",
         type=int,
         default=1,
-        help='number of batches for ppo (default: 1)',
+        help="number of batches for ppo (default: 1)",
     )
     parser.add_argument(
-        '--entropy_coef',
+        "--entropy_coef",
         type=float,
         default=0.01,
-        help='entropy term coefficient (default: 0.01)',
+        help="entropy term coefficient (default: 0.01)",
     )
     parser.add_argument(
-        '--value_loss_coef',
+        "--value_loss_coef",
         type=float,
         default=1,
-        help='value loss coefficient (default: 0.5)',
+        help="value loss coefficient (default: 0.5)",
     )
     parser.add_argument(
-        '--use_max_grad_norm',
-        action='store_false',
+        "--use_max_grad_norm",
+        action="store_false",
         default=True,
-        help='by default, use max norm of gradients. If set, do not use.',
+        help="by default, use max norm of gradients. If set, do not use.",
     )
     parser.add_argument(
-        '--max_grad_norm',
+        "--max_grad_norm",
         type=float,
         default=10.0,
-        help='max norm of gradients (default: 0.5)',
+        help="max norm of gradients (default: 0.5)",
     )
     parser.add_argument(
-        '--use_gae',
-        action='store_false',
+        "--use_gae",
+        action="store_false",
         default=True,
-        help='use generalized advantage estimation',
+        help="use generalized advantage estimation",
     )
     parser.add_argument(
-        '--gamma',
+        "--gamma",
         type=float,
         default=0.99,
-        help='discount factor for rewards (default: 0.99)',
+        help="discount factor for rewards (default: 0.99)",
     )
     parser.add_argument(
-        '--gae_lambda',
+        "--gae_lambda",
         type=float,
         default=0.95,
-        help='gae lambda parameter (default: 0.95)',
+        help="gae lambda parameter (default: 0.95)",
     )
     parser.add_argument(
-        '--use_proper_time_limits',
-        action='store_true',
+        "--use_proper_time_limits",
+        action="store_true",
         default=False,
-        help='compute returns taking into account time limits',
+        help="compute returns taking into account time limits",
     )
     parser.add_argument(
-        '--use_huber_loss',
-        action='store_false',
+        "--use_huber_loss",
+        action="store_false",
         default=True,
-        help='by default, use huber loss. If set, do not use huber loss.',
+        help="by default, use huber loss. If set, do not use huber loss.",
     )
     parser.add_argument(
-        '--use_value_active_masks',
-        action='store_false',
+        "--use_value_active_masks",
+        action="store_false",
         default=True,
-        help='by default True, whether to mask useless data in value loss.',
+        help="by default True, whether to mask useless data in value loss.",
     )
     parser.add_argument(
-        '--use_policy_active_masks',
-        action='store_false',
+        "--use_policy_active_masks",
+        action="store_false",
         default=True,
-        help='by default True, whether to mask useless data in policy loss.',
+        help="by default True, whether to mask useless data in policy loss.",
     )
-    parser.add_argument('--huber_delta',
-                        type=float,
-                        default=10.0,
-                        help=' coefficience of huber loss.')
+    parser.add_argument(
+        "--huber_delta", type=float, default=10.0, help=" coefficience of huber loss."
+    )
 
     # Replay buffer parameters
     parser.add_argument(
-        '--replay_buffer_size',
+        "--replay_buffer_size",
         type=int,
         default=5000,
-        help='Max number of episodes stored in the replay buffer.',
+        help="Max number of episodes stored in the replay buffer.",
     )
     parser.add_argument(
-        '--memory_warmup_size',
+        "--memory_warmup_size",
         type=int,
         default=32,
         help="Learning start until replay_buffer_size >= 'memory_warmup_size'",
     )
 
     # Optimizer parameters
-    parser.add_argument('--learning_rate',
-                        type=float,
-                        default=0.001,
-                        help='Learning rate.')
-    parser.add_argument('--min_learning_rate',
-                        type=float,
-                        default=1e-6,
-                        help='Min learning rate.')
     parser.add_argument(
-        '--actor_lr',
-        type=float,
-        default=5e-4,
-        help='actor learning rate (default: 5e-4)',
+        "--learning_rate", type=float, default=0.001, help="Learning rate."
     )
     parser.add_argument(
-        '--critic_lr',
-        type=float,
-        default=5e-4,
-        help='critic learning rate (default: 5e-4)',
+        "--min_learning_rate", type=float, default=1e-6, help="Min learning rate."
     )
     parser.add_argument(
-        '--opti_eps',
+        "--actor_lr",
+        type=float,
+        default=5e-4,
+        help="actor learning rate (default: 5e-4)",
+    )
+    parser.add_argument(
+        "--critic_lr",
+        type=float,
+        default=5e-4,
+        help="critic learning rate (default: 5e-4)",
+    )
+    parser.add_argument(
+        "--opti_eps",
         type=float,
         default=1e-5,
-        help='RMSprop optimizer epsilon (default: 1e-5)',
+        help="RMSprop optimizer epsilon (default: 1e-5)",
     )
-    parser.add_argument('--weight_decay', type=float, default=0)
+    parser.add_argument("--weight_decay", type=float, default=0)
 
     # Train Parameters
     parser.add_argument(
-        '--target_update_tau',
+        "--target_update_tau",
         type=float,
         default=0.05,
-        help='Target model soft update coef.',
+        help="Target model soft update coef.",
     )
     parser.add_argument(
-        '--target_update_interval',
+        "--target_update_interval",
         type=int,
         default=100,
-        help='Target model update interval.',
+        help="Target model update interval.",
     )
-    parser.add_argument('--batch_size',
-                        type=int,
-                        default=32,
-                        help='Training batch size.')
     parser.add_argument(
-        '--test_interval',
+        "--batch_size", type=int, default=32, help="Training batch size."
+    )
+    parser.add_argument(
+        "--test_interval",
         type=int,
         default=100,
         help="Evaluate the model every 'test_steps' steps.",
     )
     parser.add_argument(
-        '--num_test_episodes',
+        "--num_test_episodes",
         type=int,
         default=32,
-        help='number of episodes of a single evaluation.',
+        help="number of episodes of a single evaluation.",
     )
 
     # log parameters
     parser.add_argument(
-        '--logger',
+        "--logger",
         type=str,
-        default='wandb',
-        help=
-        '[for wandb usage], by default use wandb logger, will log date to wandb server. or else will use tensorboard to log data.',
+        default="wandb",
+        help="[for wandb usage], by default use wandb logger, will log date to wandb server. or else will use tensorboard to log data.",
     )
     parser.add_argument(
-        '--log_dir',
+        "--log_dir",
         type=str,
-        default='./work_dirs',
-        help='the directory to save the log and model',
+        default="./work_dirs",
+        help="the directory to save the log and model",
     )
     parser.add_argument(
-        '--train_log_interval',
+        "--train_log_interval",
         type=int,
         default=5,
-        help='Log interval(Eposide) for training',
+        help="Log interval(Eposide) for training",
     )
     parser.add_argument(
-        '--test_log_interval',
+        "--test_log_interval",
         type=int,
         default=20,
-        help='Log interval(Eposide) for testing.',
+        help="Log interval(Eposide) for testing.",
     )
 
     # Render parameters
     parser.add_argument(
-        '--save_gifs',
-        action='store_true',
+        "--save_gifs",
+        action="store_true",
         default=False,
-        help='by default, do not save render video. If set, save video.',
+        help="by default, do not save render video. If set, save video.",
     )
     parser.add_argument(
-        '--use_render',
-        action='store_true',
+        "--use_render",
+        action="store_true",
         default=False,
-        help=
-        'by default, do not render the env during training. If set, start render. Note: something, the environment has internal render process which is not controlled by this hyperparam.',
+        help="by default, do not render the env during training. If set, start render. Note: something, the environment has internal render process which is not controlled by this hyperparam.",
     )
     parser.add_argument(
-        '--render_episodes',
+        "--render_episodes",
         type=int,
         default=5,
-        help='the number of episodes to render a given env',
+        help="the number of episodes to render a given env",
     )
     parser.add_argument(
-        '--ifi',
+        "--ifi",
         type=float,
         default=0.1,
-        help='the play interval of each rendered image in saved video.',
+        help="the play interval of each rendered image in saved video.",
     )
 
     # Pretrained parameters
     parser.add_argument(
-        '--load_model',
+        "--load_model",
         type=bool,
         default=False,
-        help='whether to load the pretrained model',
+        help="whether to load the pretrained model",
     )
     parser.add_argument(
-        '--model_dir',
+        "--model_dir",
         type=str,
         default=None,
-        help='by default None. set the path to pretrained model.',
+        help="by default None. set the path to pretrained model.",
     )
     args = parser.parse_args()
     return args

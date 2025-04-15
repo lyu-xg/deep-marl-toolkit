@@ -37,7 +37,7 @@ class OnPolicyBuffer(BaseBuffer):
         use_gae: bool = False,
         gae_lambda: float = 0.8,
         use_advantage_norm: bool = False,
-        device: str = 'cpu',
+        device: str = "cpu",
         **kwargs,
     ) -> None:
         super(OnPolicyBuffer, self).__init__(
@@ -67,56 +67,50 @@ class OnPolicyBuffer(BaseBuffer):
 
     def reset(self):
         self.buffers = {
-            'obs':
-            np.zeros(
+            "obs": np.zeros(
                 (self.max_size, self.num_envs) + self.obs_shape,
                 dtype=np.float32,
             ),
-            'actions':
-            np.zeros(
+            "actions": np.zeros(
                 (self.max_size, self.num_envs, self.num_agents),
                 dtype=np.float32,
             ),
-            'rewards':
-            np.zeros(
+            "rewards": np.zeros(
                 (self.max_size, self.num_envs) + self.reward_shape,
                 dtype=np.float32,
             ),
-            'returns':
-            np.zeros(
+            "returns": np.zeros(
                 (self.max_size, self.num_envs) + self.reward_shape,
                 dtype=np.float32,
             ),
-            'values':
-            np.zeros(
+            "values": np.zeros(
                 (self.max_size, self.num_envs, self.num_agents, 1),
                 dtype=np.float32,
             ),
-            'log_pi_old':
-            np.zeros(
+            "log_pi_old": np.zeros(
                 (self.max_size, self.num_envs, self.num_agents),
                 dtype=np.float32,
             ),
-            'advantages':
-            np.zeros(
+            "advantages": np.zeros(
                 (self.max_size, self.num_envs) + self.reward_shape,
                 dtype=np.float32,
             ),
-            'dones':
-            np.zeros((self.max_size, self.num_envs) + self.done_shape,
-                     dtype=np.bool_),
-            'agent_mask':
-            np.ones((self.max_size, self.num_envs, self.num_agents),
-                    dtype=np.bool_),
+            "dones": np.zeros(
+                (self.max_size, self.num_envs) + self.done_shape, dtype=np.bool_
+            ),
+            "agent_mask": np.ones(
+                (self.max_size, self.num_envs, self.num_agents), dtype=np.bool_
+            ),
         }
         if self.state_shape is not None:
-            self.buffers.update({
-                'state':
-                np.zeros(
-                    (self.max_size, self.num_envs) + self.state_shape,
-                    dtype=np.float32,
-                )
-            })
+            self.buffers.update(
+                {
+                    "state": np.zeros(
+                        (self.max_size, self.num_envs) + self.state_shape,
+                        dtype=np.float32,
+                    )
+                }
+            )
         self.curr_ptr, self.curr_size = 0, 0
         self.start_ids = np.zeros(self.num_envs, np.int64)
         # the start index of the last episode for each env.
@@ -129,7 +123,7 @@ class OnPolicyBuffer(BaseBuffer):
         """
         step_data_keys = step_data.keys()
         for k in self.buffer_keys:
-            if k == 'advantages':
+            if k == "advantages":
                 continue
             if k in step_data_keys:
                 self.buffers[k][self.curr_ptr] = step_data[k]
@@ -146,56 +140,57 @@ class OnPolicyBuffer(BaseBuffer):
         if self.curr_size == 0:
             return
         if self.size() == self.max_size:
-            path_slice = np.arange(self.start_ids[env_idx],
-                                   self.max_size).astype(np.int32)
+            path_slice = np.arange(self.start_ids[env_idx], self.max_size).astype(
+                np.int32
+            )
         else:
-            path_slice = np.arange(self.start_ids[env_idx],
-                                   self.curr_ptr).astype(np.int32)
+            path_slice = np.arange(self.start_ids[env_idx], self.curr_ptr).astype(
+                np.int32
+            )
 
         # calculate advantages and returns
-        rewards = np.array(self.buffers['rewards'][path_slice, env_idx])
+        rewards = np.array(self.buffers["rewards"][path_slice, env_idx])
         vs = np.append(
-            np.array(self.buffers['values'][path_slice, env_idx]),
+            np.array(self.buffers["values"][path_slice, env_idx]),
             [value],
             axis=0,
         )
-        dones = np.array(self.buffers['dones'][path_slice, env_idx])[:, :,
-                                                                     None]
+        dones = np.array(self.buffers["dones"][path_slice, env_idx])[:, :, None]
         returns = np.zeros_like(rewards)
         last_gae_lam = 0
         step_nums = len(path_slice)
 
         if self.use_gae:
             for t in reversed(range(step_nums)):
-                delta = rewards[t] + (
-                    1 - dones[t]) * self.gamma * vs[t + 1] - vs[t]
-                last_gae_lam = (delta + (1 - dones[t]) * self.gamma *
-                                self.gae_lambda * last_gae_lam)
+                delta = rewards[t] + (1 - dones[t]) * self.gamma * vs[t + 1] - vs[t]
+                last_gae_lam = (
+                    delta + (1 - dones[t]) * self.gamma * self.gae_lambda * last_gae_lam
+                )
                 returns[t] = last_gae_lam + vs[t]
         else:
             returns = np.append(returns, [value], axis=0)
             for t in reversed(range(step_nums)):
-                returns[t] = rewards[t] + (
-                    1 - dones[t]) * self.gamma * returns[t + 1]
+                returns[t] = rewards[t] + (1 - dones[t]) * self.gamma * returns[t + 1]
 
         advantages = returns - vs[:-1]
-        self.buffers['returns'][path_slice, env_idx] = returns
-        self.buffers['advantages'][path_slice, env_idx] = advantages
+        self.buffers["returns"][path_slice, env_idx] = returns
+        self.buffers["advantages"][path_slice, env_idx] = advantages
         self.start_ids[env_idx] = self.curr_ptr
 
     def sample(self, idx: int):
         assert (
             self.size() == self.max_size
-        ), 'Not enough transitions for on-policy buffer to random sample'
+        ), "Not enough transitions for on-policy buffer to random sample"
 
         samples = {}
         env_choices, step_choices = divmod(self.max_size, idx)
         for k in self.buffer_keys:
-            if k == 'advantages':
+            if k == "advantages":
                 adv_batch = self.buffers[k][step_choices, env_choices]
                 if self.use_advantage_norm:
                     adv_batch = (adv_batch - np.mean(adv_batch)) / (
-                        np.std(adv_batch) + 1e-8)
+                        np.std(adv_batch) + 1e-8
+                    )
                 samples[k] = adv_batch
             else:
                 samples[k] = self.buffers[k][step_choices, env_choices]
@@ -219,7 +214,7 @@ class OnPolicyBufferRNN(OnPolicyBuffer):
         use_gae: bool = False,
         gae_lambda: float = 0.8,
         use_advantage_norm: bool = False,
-        device: str = 'cpu',
+        device: str = "cpu",
         **kwargs,
     ) -> None:
         super(OnPolicyBufferRNN).__init__(
@@ -247,150 +242,123 @@ class OnPolicyBufferRNN(OnPolicyBuffer):
 
     def reset(self) -> None:
         self.buffers = {
-            'obs':
-            np.zeros(
-                (self.max_size, self.episode_limit, self.num_envs) +
-                self.obs_shape,
+            "obs": np.zeros(
+                (self.max_size, self.episode_limit, self.num_envs) + self.obs_shape,
                 np.float32,
             ),
-            'actions':
-            np.zeros(
-                (self.max_size, self.episode_limit, self.num_envs,
-                 self.num_agents),
+            "actions": np.zeros(
+                (self.max_size, self.episode_limit, self.num_envs, self.num_agents),
                 np.float32,
             ),
-            'rewards':
-            np.zeros(
-                (self.max_size, self.episode_limit, self.num_envs) +
-                self.reward_shape,
+            "rewards": np.zeros(
+                (self.max_size, self.episode_limit, self.num_envs) + self.reward_shape,
                 np.float32,
             ),
-            'returns':
-            np.zeros(
-                (self.max_size, self.episode_limit, self.num_envs) +
-                self.reward_shape,
+            "returns": np.zeros(
+                (self.max_size, self.episode_limit, self.num_envs) + self.reward_shape,
                 np.float32,
             ),
-            'values':
-            np.zeros(
-                (self.max_size, self.episode_limit, self.num_envs) +
-                self.reward_shape,
+            "values": np.zeros(
+                (self.max_size, self.episode_limit, self.num_envs) + self.reward_shape,
                 np.float32,
             ),
-            'advantages':
-            np.zeros(
-                (self.max_size, self.episode_limit, self.num_envs) +
-                self.reward_shape,
+            "advantages": np.zeros(
+                (self.max_size, self.episode_limit, self.num_envs) + self.reward_shape,
                 np.float32,
             ),
-            'log_pi_old':
-            np.zeros(
-                (self.max_size, self.episode_limit, self.num_envs) +
-                self.reward_shape,
+            "log_pi_old": np.zeros(
+                (self.max_size, self.episode_limit, self.num_envs) + self.reward_shape,
                 np.float32,
             ),
-            'dones':
-            np.zeros(
-                (self.max_size, self.episode_limit, self.num_envs) +
-                self.done_shape,
+            "dones": np.zeros(
+                (self.max_size, self.episode_limit, self.num_envs) + self.done_shape,
                 np.bool_,
             ),
-            'avail_actions':
-            np.ones(
-                (self.max_size, self.episode_limit, self.num_envs) +
-                self.action_shape,
+            "avail_actions": np.ones(
+                (self.max_size, self.episode_limit, self.num_envs) + self.action_shape,
                 np.bool_,
             ),
-            'filled':
-            np.zeros(
-                (self.max_size, self.episode_limit, self.num_envs) +
-                self.done_shape,
+            "filled": np.zeros(
+                (self.max_size, self.episode_limit, self.num_envs) + self.done_shape,
                 np.bool_,
             ),
         }
         if self.state_shape is not None:
-            self.buffers.update({
-                'state':
-                np.zeros(
-                    (self.max_size, self.episode_limit, self.num_envs) +
-                    self.state_shape,
-                    np.float32,
-                )
-            })
+            self.buffers.update(
+                {
+                    "state": np.zeros(
+                        (self.max_size, self.episode_limit, self.num_envs)
+                        + self.state_shape,
+                        np.float32,
+                    )
+                }
+            )
 
     def reset_episode(self) -> None:
         self.episode_data = {
-            'obs':
-            np.zeros(
+            "obs": np.zeros(
                 (self.episode_limit, self.num_envs) + self.obs_shape,
                 dtype=np.float32,
             ),
-            'actions':
-            np.zeros(
+            "actions": np.zeros(
                 (self.episode_limit, self.num_envs, self.num_agents),
                 dtype=np.float32,
             ),
-            'rewards':
-            np.zeros(
+            "rewards": np.zeros(
                 (self.episode_limit, self.num_envs) + self.reward_shape,
                 dtype=np.float32,
             ),
-            'returns':
-            np.zeros(
+            "returns": np.zeros(
                 (self.episode_limit, self.num_envs) + self.reward_shape,
                 np.float32,
             ),
-            'values':
-            np.zeros(
-                (self.episode_limit, self.num_envs, self.num_agents) +
-                self.reward_shape,
+            "values": np.zeros(
+                (self.episode_limit, self.num_envs, self.num_agents)
+                + self.reward_shape,
                 np.float32,
             ),
-            'advantages':
-            np.zeros(
-                (self.episode_limit, self.num_envs, self.num_agents) +
-                self.reward_shape,
+            "advantages": np.zeros(
+                (self.episode_limit, self.num_envs, self.num_agents)
+                + self.reward_shape,
                 np.float32,
             ),
-            'log_pi_old':
-            np.zeros(
+            "log_pi_old": np.zeros(
                 (self.episode_limit, self.num_envs, self.num_agents),
                 np.float32,
             ),
-            'dones':
-            np.zeros(
+            "dones": np.zeros(
                 (self.episode_limit, self.num_envs) + self.done_shape,
                 dtype=np.bool_,
             ),
-            'available_actions':
-            np.ones(
+            "available_actions": np.ones(
                 (self.episode_limit, self.num_envs) + self.action_shape,
                 dtype=np.bool_,
             ),
-            'filled':
-            np.zeros((self.episode_limit, self.num_envs, 1), dtype=np.bool_),
+            "filled": np.zeros((self.episode_limit, self.num_envs, 1), dtype=np.bool_),
         }
         if self.state_shape is not None:
-            self.episode_data.update({
-                'state':
-                np.zeros(
-                    (self.episode_limit, self.num_envs) + self.state_shape,
-                    dtype=np.float32,
-                ),
-            })
+            self.episode_data.update(
+                {
+                    "state": np.zeros(
+                        (self.episode_limit, self.num_envs) + self.state_shape,
+                        dtype=np.float32,
+                    ),
+                }
+            )
 
     def store_transitions(self, transition_data: Tuple) -> None:
         obs, state, action, rewards, values, log_pi, terminated, avail_actions = (
-            transition_data)
-        self.episode_data['obs'] = obs
-        self.episode_data['actions'] = action
-        self.episode_data['rewards'] = rewards
-        self.episode_data['values'] = values
-        self.episode_data['log_pi_old'] = log_pi
-        self.episode_data['terminals'] = terminated
-        self.episode_data['avail_actions'] = avail_actions
+            transition_data
+        )
+        self.episode_data["obs"] = obs
+        self.episode_data["actions"] = action
+        self.episode_data["rewards"] = rewards
+        self.episode_data["values"] = values
+        self.episode_data["log_pi_old"] = log_pi
+        self.episode_data["terminals"] = terminated
+        self.episode_data["avail_actions"] = avail_actions
         if self.state_shape is not None:
-            self.episode_data['state'] = state
+            self.episode_data["state"] = state
 
     def store_episodes(self) -> None:
         for k in self.buffer_keys:
@@ -402,22 +370,24 @@ class OnPolicyBufferRNN(OnPolicyBuffer):
     def sample(self, indexes):
         assert (
             self.size() == self.max_size
-        ), 'Not enough transitions for on-policy buffer to random sample'
+        ), "Not enough transitions for on-policy buffer to random sample"
         samples = {}
-        filled_batch = self.buffers['filled'][indexes]
-        samples['filled'] = filled_batch
+        filled_batch = self.buffers["filled"][indexes]
+        samples["filled"] = filled_batch
         for k in self.buffer_keys:
-            if k == 'filled':
+            if k == "filled":
                 continue
-            if k == 'advantages':
+            if k == "advantages":
                 adv_batch = self.buffers[k][indexes]
                 if self.use_advantage_norm:
                     adv_batch_copy = adv_batch.copy()
                     filled_batch_n = filled_batch[:, None, :, :].repeat(
-                        self.num_agents, axis=1)
+                        self.num_agents, axis=1
+                    )
                     adv_batch_copy[filled_batch_n == 0] = np.nan
                     adv_batch = (adv_batch - np.nanmean(adv_batch_copy)) / (
-                        np.nanstd(adv_batch_copy) + 1e-8)
+                        np.nanstd(adv_batch_copy) + 1e-8
+                    )
                 samples[k] = adv_batch
             else:
                 samples[k] = self.buffers[k][indexes]

@@ -25,8 +25,7 @@ class MADDPGCritic(nn.Module):
         self.obs_agent_id = obs_agent_id
         self.obs_last_action = obs_last_action
 
-        self.input_shape = self._get_input_shape(
-        ) + self.n_actions * self.n_agents
+        self.input_shape = self._get_input_shape() + self.n_actions * self.n_agents
         if self.obs_last_action:
             self.input_shape += self.n_actions
 

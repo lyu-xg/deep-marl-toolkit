@@ -19,8 +19,9 @@ class R_Critic(nn.Module):
     def __init__(self, args: argparse.Namespace):
         super(R_Critic, self).__init__()
         self.use_recurrent_policy = args.use_recurrent_policy
-        init_method = [nn.init.xavier_uniform_,
-                       nn.init.orthogonal_][args.use_orthogonal]
+        init_method = [nn.init.xavier_uniform_, nn.init.orthogonal_][
+            args.use_orthogonal
+        ]
         self.base = MLPBase(
             input_dim=args.state_dim,
             hidden_dim=args.hidden_size,
@@ -66,6 +67,7 @@ class R_Critic(nn.Module):
         critic_features = self.base(state)
         if self.use_recurrent_policy:
             critic_features, rnn_hidden_states = self.rnn(
-                critic_features, rnn_hidden_states, masks)
+                critic_features, rnn_hidden_states, masks
+            )
         values = self.v_out(critic_features)
         return values, rnn_hidden_states

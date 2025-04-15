@@ -4,6 +4,9 @@ from .tensorboard import TensorboardLogger
 from .wandb import WandbLogger
 
 __all__ = [
-    'BaseLogger', 'TensorboardLogger', 'WandbLogger', 'get_root_logger',
-    'get_outdir'
+    "BaseLogger",
+    "TensorboardLogger",
+    "WandbLogger",
+    "get_root_logger",
+    "get_outdir",
 ]

@@ -8,21 +8,29 @@ from typing import Any, Callable, List, Optional, Union
 import gymnasium as gym
 import numpy as np
 from gymnasium import logger
-from gymnasium.error import (AlreadyPendingCallError, ClosedEnvironmentError,
-                             CustomSpaceError, NoAsyncCallError)
-from gymnasium.vector.utils import (clear_mpi_env_vars, concatenate,
-                                    create_empty_array, create_shared_memory,
-                                    read_from_shared_memory,
-                                    write_to_shared_memory)
+from gymnasium.error import (
+    AlreadyPendingCallError,
+    ClosedEnvironmentError,
+    CustomSpaceError,
+    NoAsyncCallError,
+)
+from gymnasium.vector.utils import (
+    clear_mpi_env_vars,
+    concatenate,
+    create_empty_array,
+    create_shared_memory,
+    read_from_shared_memory,
+    write_to_shared_memory,
+)
 
 from .base_vec_env import BaseVecEnv, CloudpickleWrapper
 
 
 class AsyncState(Enum):
-    DEFAULT = 'default'
-    WAITING_RESET = 'reset'
-    WAITING_STEP = 'step'
-    WAITING_CALL = 'call'
+    DEFAULT = "default"
+    WAITING_RESET = "reset"
+    WAITING_STEP = "step"
+    WAITING_CALL = "call"
 
 
 class SubprocVecEnv(BaseVecEnv):
@@ -80,7 +88,7 @@ class SubprocVecEnv(BaseVecEnv):
         obs_space: Optional[gym.Space] = None,
         state_space: Optional[gym.Space] = None,
         action_space: Optional[gym.Space] = None,
-        start_method: Optional[str] = 'spawn',
+        start_method: Optional[str] = "spawn",
         shared_memory: bool = False,
         copy: bool = True,
     ) -> None:
@@ -93,14 +101,13 @@ class SubprocVecEnv(BaseVecEnv):
             # Fork is not a thread safe method (see issue #217)
             # but is more user friendly (does not require to wrap the code in
             # a `if __name__ == "__main__":`)
-            forkserver_available = 'forkserver' in mp.get_all_start_methods()
-            start_method = 'forkserver' if forkserver_available else 'spawn'
+            forkserver_available = "forkserver" in mp.get_all_start_methods()
+            start_method = "forkserver" if forkserver_available else "spawn"
 
         ctx = mp.get_context(start_method)
 
         dummy_env = env_fns[0]()
-        if (obs_space is None) or (state_space is None) or (action_space is
-                                                            None):
+        if (obs_space is None) or (state_space is None) or (action_space is None):
             obs_space = obs_space or dummy_env.obs_space
             state_space = state_space or dummy_env.state_space
             action_space = action_space or dummy_env.action_space
@@ -117,34 +124,36 @@ class SubprocVecEnv(BaseVecEnv):
 
         if self.shared_memory:
             try:
-                _obs_buffer = create_shared_memory(self.single_obs_space,
-                                                   n=self.num_envs,
-                                                   ctx=ctx)
-                _state_buffer = create_shared_memory(self.single_state_space,
-                                                     n=self.num_envs,
-                                                     ctx=ctx)
+                _obs_buffer = create_shared_memory(
+                    self.single_obs_space, n=self.num_envs, ctx=ctx
+                )
+                _state_buffer = create_shared_memory(
+                    self.single_state_space, n=self.num_envs, ctx=ctx
+                )
                 self.observations = read_from_shared_memory(
-                    self.single_obs_space, _obs_buffer, n=self.num_envs)
-                self.states = read_from_shared_memory(self.single_state_space,
-                                                      _state_buffer,
-                                                      n=self.num_envs)
+                    self.single_obs_space, _obs_buffer, n=self.num_envs
+                )
+                self.states = read_from_shared_memory(
+                    self.single_state_space, _state_buffer, n=self.num_envs
+                )
             except CustomSpaceError as e:
                 raise ValueError(
-                    'Using `shared_memory=True` in `AsyncVectorEnv` '
-                    'is incompatible with non-standard Gymnasium observation spaces '
-                    '(i.e. custom spaces inheriting from `gymnasium.Space`), and is '
-                    'only compatible with default Gymnasium spaces (e.g. `Box`, '
-                    '`Tuple`, `Dict`) for batching. Set `shared_memory=False` '
-                    'if you use custom observation spaces.') from e
+                    "Using `shared_memory=True` in `AsyncVectorEnv` "
+                    "is incompatible with non-standard Gymnasium observation spaces "
+                    "(i.e. custom spaces inheriting from `gymnasium.Space`), and is "
+                    "only compatible with default Gymnasium spaces (e.g. `Box`, "
+                    "`Tuple`, `Dict`) for batching. Set `shared_memory=False` "
+                    "if you use custom observation spaces."
+                ) from e
         else:
             _obs_buffer = None
             _state_buffer = None
-            self.observations = create_empty_array(self.single_obs_space,
-                                                   n=self.num_envs,
-                                                   fn=np.zeros)
-            self.states = create_empty_array(self.single_state_space,
-                                             n=self.num_envs,
-                                             fn=np.zeros)
+            self.observations = create_empty_array(
+                self.single_obs_space, n=self.num_envs, fn=np.zeros
+            )
+            self.states = create_empty_array(
+                self.single_state_space, n=self.num_envs, fn=np.zeros
+            )
 
         self.buf_rewards = np.zeros((self.num_envs, 1), dtype=np.float32)
         self.buf_dones = np.zeros((self.num_envs, 1), dtype=np.bool_)
@@ -168,7 +177,7 @@ class SubprocVecEnv(BaseVecEnv):
                 # daemon=True: if the main process crashes, we should not cause things to hang
                 process = ctx.Process(
                     target=target,
-                    name=f'Worker<{type(self).__name__}>-{idx}',
+                    name=f"Worker<{type(self).__name__}>-{idx}",
                     args=args,
                     daemon=True,
                 )  # type: ignore[attr-defined]
@@ -211,18 +220,18 @@ class SubprocVecEnv(BaseVecEnv):
 
         if self._state != AsyncState.DEFAULT:
             raise AlreadyPendingCallError(
-                f'Calling `reset_async` while waiting for a pending call to `{self._state.value}` to complete',
+                f"Calling `reset_async` while waiting for a pending call to `{self._state.value}` to complete",
                 self._state.value,
             )
         # Seeds and options are only used once
         for pipe, single_seed in zip(self.parent_pipes, self.seeds):
             single_kwargs = {}
             if single_seed is not None:
-                single_kwargs['seed'] = single_seed
+                single_kwargs["seed"] = single_seed
             if options is not None:
-                single_kwargs['options'] = options
+                single_kwargs["options"] = options
 
-            pipe.send(('reset', single_kwargs))
+            pipe.send(("reset", single_kwargs))
         self._state = AsyncState.WAITING_RESET
 
     def reset_wait(
@@ -250,15 +259,14 @@ class SubprocVecEnv(BaseVecEnv):
         self._assert_is_running()
         if self._state != AsyncState.WAITING_RESET:
             raise NoAsyncCallError(
-                'Calling `reset_wait` without any prior '
-                'call to `reset_async`.',
+                "Calling `reset_wait` without any prior " "call to `reset_async`.",
                 AsyncState.WAITING_RESET.value,
             )
 
         if not self._poll(timeout):
             self._state = AsyncState.DEFAULT
             raise mp.TimeoutError(
-                f'The call to `reset_wait` has timed out after {timeout} second(s).'
+                f"The call to `reset_wait` has timed out after {timeout} second(s)."
             )
 
         results, successes = zip(*[pipe.recv() for pipe in self.parent_pipes])
@@ -271,10 +279,10 @@ class SubprocVecEnv(BaseVecEnv):
             infos = self._add_info(infos, info, idx)
 
         if not self.shared_memory:
-            self.observations = concatenate(self.single_obs_space, obs_lst,
-                                            self.observations)
-            self.states = concatenate(self.single_state_space, state_lst,
-                                      self.states)
+            self.observations = concatenate(
+                self.single_obs_space, obs_lst, self.observations
+            )
+            self.states = concatenate(self.single_state_space, state_lst, self.states)
         self.buf_dones[:] = False
         return (
             (deepcopy(self.observations) if self.copy else self.observations),
@@ -298,12 +306,12 @@ class SubprocVecEnv(BaseVecEnv):
         self._assert_is_running()
         if self._state != AsyncState.DEFAULT:
             raise AlreadyPendingCallError(
-                f'Calling `step_async` while waiting for a pending call to `{self._state.value}` to complete.',
+                f"Calling `step_async` while waiting for a pending call to `{self._state.value}` to complete.",
                 self._state.value,
             )
 
         for pipe, action in zip(self.parent_pipes, actions):
-            pipe.send(('step', action))
+            pipe.send(("step", action))
         self._state = AsyncState.WAITING_STEP
 
     def step_wait(self, timeout: Optional[Union[int, float]] = None):
@@ -323,14 +331,13 @@ class SubprocVecEnv(BaseVecEnv):
         self._assert_is_running()
         if self._state != AsyncState.WAITING_STEP:
             raise NoAsyncCallError(
-                'Calling `step_wait` without any prior call '
-                'to `step_async`.',
+                "Calling `step_wait` without any prior call " "to `step_async`.",
                 AsyncState.WAITING_STEP.value,
             )
         if not self._poll(timeout):
             self._state = AsyncState.DEFAULT
             raise mp.TimeoutError(
-                f'The call to `step_wait` has timed out after {timeout} second(s).'
+                f"The call to `step_wait` has timed out after {timeout} second(s)."
             )
 
         obs_list, state_list, infos = [], [], {}
@@ -383,13 +390,13 @@ class SubprocVecEnv(BaseVecEnv):
         self._assert_is_running()
         if self._state != AsyncState.DEFAULT:
             raise AlreadyPendingCallError(
-                'Calling `call_async` while waiting '
-                f'for a pending call to `{self._state.value}` to complete.',
+                "Calling `call_async` while waiting "
+                f"for a pending call to `{self._state.value}` to complete.",
                 self._state.value,
             )
 
         for pipe in self.parent_pipes:
-            pipe.send(('_call', (name, args, kwargs)))
+            pipe.send(("_call", (name, args, kwargs)))
         self._state = AsyncState.WAITING_CALL
 
     def call_wait(self, timeout: Optional[Union[int, float]] = None) -> list:
@@ -409,14 +416,14 @@ class SubprocVecEnv(BaseVecEnv):
         self._assert_is_running()
         if self._state != AsyncState.WAITING_CALL:
             raise NoAsyncCallError(
-                'Calling `call_wait` without any prior call to `call_async`.',
+                "Calling `call_wait` without any prior call to `call_async`.",
                 AsyncState.WAITING_CALL.value,
             )
 
         if not self._poll(timeout):
             self._state = AsyncState.DEFAULT
             raise mp.TimeoutError(
-                f'The call to `call_wait` has timed out after {timeout} second(s).'
+                f"The call to `call_wait` has timed out after {timeout} second(s)."
             )
 
         results, successes = zip(*[pipe.recv() for pipe in self.parent_pipes])
@@ -425,9 +432,9 @@ class SubprocVecEnv(BaseVecEnv):
 
         return results
 
-    def close_extras(self,
-                     timeout: Optional[Union[int, float]] = None,
-                     terminate: bool = False):
+    def close_extras(
+        self, timeout: Optional[Union[int, float]] = None, terminate: bool = False
+    ):
         """Close the environments & clean up the extra resources (processes and
         pipes).
 
@@ -444,9 +451,9 @@ class SubprocVecEnv(BaseVecEnv):
         try:
             if self._state != AsyncState.DEFAULT:
                 logger.warn(
-                    f'Calling `close` while waiting for a pending call to `{self._state.value}` to complete.'
+                    f"Calling `close` while waiting for a pending call to `{self._state.value}` to complete."
                 )
-                function = getattr(self, f'{self._state.value}_wait')
+                function = getattr(self, f"{self._state.value}_wait")
                 function(timeout)
         except mp.TimeoutError:
             terminate = True
@@ -458,7 +465,7 @@ class SubprocVecEnv(BaseVecEnv):
         else:
             for pipe in self.parent_pipes:
                 if (pipe is not None) and (not pipe.closed):
-                    pipe.send(('close', None))
+                    pipe.send(("close", None))
             for pipe in self.parent_pipes:
                 if (pipe is not None) and (not pipe.closed):
                     pipe.recv()
@@ -470,25 +477,26 @@ class SubprocVecEnv(BaseVecEnv):
             process.join()
         self.closed = True
 
-    def get_available_actions(self, ):
+    def get_available_actions(
+        self,
+    ):
         """Get the available actions for each environment."""
         self._assert_is_running()
         if self._state != AsyncState.DEFAULT:
             raise AlreadyPendingCallError(
-                f'Calling `get_available_actions` while waiting for a pending call to `{self._state.value}` to complete',
+                f"Calling `get_available_actions` while waiting for a pending call to `{self._state.value}` to complete",
                 self._state.value,
             )
         for pipe in self.parent_pipes:
-            pipe.send(('get_available_actions', None))
+            pipe.send(("get_available_actions", None))
 
         results, successes = zip(*[pipe.recv() for pipe in self.parent_pipes])
         self._raise_if_errors(successes)
         self._state = AsyncState.DEFAULT
 
-        avail_actions = np.stack(results,
-                                 axis=0).reshape(self.num_envs,
-                                                 self.num_agents,
-                                                 self.action_dim)
+        avail_actions = np.stack(results, axis=0).reshape(
+            self.num_envs, self.num_agents, self.action_dim
+        )
         return avail_actions
 
     def get_env_info(self):
@@ -497,12 +505,12 @@ class SubprocVecEnv(BaseVecEnv):
         self._assert_is_running()
         if self._state != AsyncState.DEFAULT:
             raise AlreadyPendingCallError(
-                f'Calling `get_env_info` while waiting for a pending call to `{self._state.value}` to complete',
+                f"Calling `get_env_info` while waiting for a pending call to `{self._state.value}` to complete",
                 self._state.value,
             )
-        self.parent_pipes[0].send(('get_env_info', None))
+        self.parent_pipes[0].send(("get_env_info", None))
         env_info, success = self.parent_pipes[0].recv()
-        assert success, 'Failed to get environment information.'
+        assert success, "Failed to get environment information."
         self._state = AsyncState.DEFAULT
         return env_info
 
@@ -542,19 +550,20 @@ class SubprocVecEnv(BaseVecEnv):
             values = [values for _ in range(self.num_envs)]
         if len(values) != self.num_envs:
             raise ValueError(
-                'Values must be a list or tuple with length equal to the '
-                f'number of environments. Got `{len(values)}` values for '
-                f'{self.num_envs} environments.')
+                "Values must be a list or tuple with length equal to the "
+                f"number of environments. Got `{len(values)}` values for "
+                f"{self.num_envs} environments."
+            )
 
         if self._state != AsyncState.DEFAULT:
             raise AlreadyPendingCallError(
-                'Calling `set_attr` while waiting '
-                f'for a pending call to `{self._state.value}` to complete.',
+                "Calling `set_attr` while waiting "
+                f"for a pending call to `{self._state.value}` to complete.",
                 self._state.value,
             )
 
         for pipe, value in zip(self.parent_pipes, values):
-            pipe.send(('_setattr', (name, value)))
+            pipe.send(("_setattr", (name, value)))
         _, successes = zip(*[pipe.recv() for pipe in self.parent_pipes])
         self._raise_if_errors(successes)
 
@@ -566,30 +575,33 @@ class SubprocVecEnv(BaseVecEnv):
             self.single_action_space,
         )
         for pipe in self.parent_pipes:
-            pipe.send(('_check_spaces', spaces))
+            pipe.send(("_check_spaces", spaces))
         results, successes = zip(*[pipe.recv() for pipe in self.parent_pipes])
         self._raise_if_errors(successes)
         same_obs_spaces, same_state_spaces, same_action_spaces = zip(*results)
         if not all(same_obs_spaces):
             raise RuntimeError(
-                'Some environments have an observation space different from '
-                f'`{self.single_obs_space}`. In order to batch observations, '
-                'the observation spaces from all environments must be equal.')
+                "Some environments have an observation space different from "
+                f"`{self.single_obs_space}`. In order to batch observations, "
+                "the observation spaces from all environments must be equal."
+            )
         if not all(same_state_spaces):
             raise RuntimeError(
-                'Some environments have an observation space different from '
-                f'`{self.single_state_space}`. In order to batch observations, '
-                'the observation spaces from all environments must be equal.')
+                "Some environments have an observation space different from "
+                f"`{self.single_state_space}`. In order to batch observations, "
+                "the observation spaces from all environments must be equal."
+            )
         if not all(same_action_spaces):
             raise RuntimeError(
-                'Some environments have an action space different from '
-                f'`{self.single_action_space}`. In order to batch actions, the '
-                'action spaces from all environments must be equal.')
+                "Some environments have an action space different from "
+                f"`{self.single_action_space}`. In order to batch actions, the "
+                "action spaces from all environments must be equal."
+            )
 
     def _assert_is_running(self):
         if self.closed:
             raise ClosedEnvironmentError(
-                f'Trying to operate on `{type(self).__name__}`, after a call to `close()`.'
+                f"Trying to operate on `{type(self).__name__}`, after a call to `close()`."
             )
 
     def _raise_if_errors(self, successes):
@@ -601,21 +613,20 @@ class SubprocVecEnv(BaseVecEnv):
         for i in range(num_errors):
             index, exctype, value = self.error_queue.get()
             logger.error(
-                f'Received the following error from Worker-{index}: {exctype.__name__}: {value}'
+                f"Received the following error from Worker-{index}: {exctype.__name__}: {value}"
             )
-            logger.error(f'Shutting down Worker-{index}.')
+            logger.error(f"Shutting down Worker-{index}.")
             self.parent_pipes[index].close()
             self.parent_pipes[index] = None
 
             if i == num_errors - 1:
-                logger.error(
-                    'Raising the last exception back to the main process.')
+                logger.error("Raising the last exception back to the main process.")
                 raise exctype(value)
 
     def __del__(self):
         """On deleting the object, checks that the vector environment is
         closed."""
-        if not getattr(self, 'closed', True) and hasattr(self, '_state'):
+        if not getattr(self, "closed", True) and hasattr(self, "_state"):
             self.close(terminate=True)
 
 
@@ -636,79 +647,81 @@ def _worker(
         try:
             command, data = child_pipe.recv()
 
-            if command == 'reset':
+            if command == "reset":
                 obs, state, info = env.reset(**data)
                 child_pipe.send(((obs, state, info), True))
 
-            elif command == 'step':
-                (obs, state, reward, terminated, truncated,
-                 info) = env.step(data)
+            elif command == "step":
+                (obs, state, reward, terminated, truncated, info) = env.step(data)
                 done = terminated or truncated
                 if done:
                     _, _, old_info = obs, state, info
                     obs, state, info = env.reset()
                     # save final obs where user can get it, then reset
-                    info['final_info'] = old_info
+                    info["final_info"] = old_info
                 child_pipe.send(((obs, state, reward, done, info), True))
 
-            elif command == 'get_available_actions':
+            elif command == "get_available_actions":
                 available_actions = env.get_available_actions()
                 child_pipe.send((available_actions, True))
 
-            elif command == 'get_env_info':
+            elif command == "get_env_info":
                 env_info = env.get_env_info()
                 child_pipe.send((env_info, True))
 
-            elif command == 'seed':
+            elif command == "seed":
                 env.seed(data)
                 child_pipe.send((None, True))
 
-            elif command == 'close':
+            elif command == "close":
                 child_pipe.send((None, True))
                 break
 
-            elif command == '_call':
+            elif command == "_call":
                 name, args, kwargs = data
                 if name in [
-                        'reset',
-                        'step',
-                        'seed',
-                        'close',
-                        'get_available_actions',
-                        'get_env_info',
+                    "reset",
+                    "step",
+                    "seed",
+                    "close",
+                    "get_available_actions",
+                    "get_env_info",
                 ]:
                     raise ValueError(
-                        f'Trying to call function `{name}` with '
-                        f'`_call`. Use `{name}` directly instead.')
+                        f"Trying to call function `{name}` with "
+                        f"`_call`. Use `{name}` directly instead."
+                    )
                 function = getattr(env, name)
                 if callable(function):
                     child_pipe.send((function(*args, **kwargs), True))
                 else:
                     child_pipe.send((function, True))
 
-            elif command == '_setattr':
+            elif command == "_setattr":
                 name, value = data
                 setattr(env, name, value)
                 child_pipe.send((None, True))
-            elif command == '_check_spaces':
-                child_pipe.send((
+            elif command == "_check_spaces":
+                child_pipe.send(
                     (
-                        data[0] == env.obs_space,
-                        data[1] == env.state_space,
-                        data[2] == env.action_space,
-                    ),
-                    True,
-                ))
+                        (
+                            data[0] == env.obs_space,
+                            data[1] == env.state_space,
+                            data[2] == env.action_space,
+                        ),
+                        True,
+                    )
+                )
             else:
                 raise RuntimeError(
-                    f'Received unknown command `{command}`. Must '
-                    'be one of {`reset`, `step`, `seed`, `close`, `_call`, ',
-                    'get_available_actions',
-                    'get_env_info',
-                    '`_setattr`, `_check_spaces`}.',
+                    f"Received unknown command `{command}`. Must "
+                    "be one of {`reset`, `step`, `seed`, `close`, `_call`, ",
+                    "get_available_actions",
+                    "get_env_info",
+                    "`_setattr`, `_check_spaces`}.",
                 )
         except (KeyboardInterrupt, Exception):
-            error_queue.put((index, ) + sys.exc_info()[:2])
+            error_queue.put((index,) + sys.exc_info()[:2])
             child_pipe.send((None, False))
         finally:
             env.close()
@@ -732,69 +745,72 @@ def _shareworker(
         try:
             command, data = child_pipe.recv()
 
-            if command == 'reset':
+            if command == "reset":
                 obs, state, info = env.reset(**data)
                 write_to_shared_memory(obs_space, index, obs, obs_buf)
                 write_to_shared_memory(state_space, index, state, state_buf)
 
                 child_pipe.send(((None, None, info), True))
 
-            if command == 'step':
-                obs, state, reward, terminated, truncated, info = env.step(
-                    data)
+            if command == "step":
+                obs, state, reward, terminated, truncated, info = env.step(data)
                 done = terminated or truncated
                 if done:
                     old_obs, old_state, old_info = obs, state, info
                     obs, state, info = env.reset()
-                    info['final_obs'] = old_obs
-                    info['final_state'] = old_state
-                    info['final_info'] = old_info
+                    info["final_obs"] = old_obs
+                    info["final_state"] = old_state
+                    info["final_info"] = old_info
                 write_to_shared_memory(obs_space, index, obs, obs_buf)
                 write_to_shared_memory(state_space, index, state, state_buf)
 
                 child_pipe.send(((None, None, reward, done, info), True))
 
-            elif command == 'seed':
+            elif command == "seed":
                 env.seed(data)
                 child_pipe.send((None, True))
 
-            elif command == 'close':
+            elif command == "close":
                 child_pipe.close()
                 env.close()
                 break
 
-            elif command == '_call':
+            elif command == "_call":
                 name, args, kwargs = data
-                if name in ['reset', 'step', 'seed', 'close']:
+                if name in ["reset", "step", "seed", "close"]:
                     raise ValueError(
-                        f'Trying to call function `{name}` with '
-                        f'`_call`. Use `{name}` directly instead.')
+                        f"Trying to call function `{name}` with "
+                        f"`_call`. Use `{name}` directly instead."
+                    )
                 function = getattr(env, name)
                 if callable(function):
                     child_pipe.send((function(*args, **kwargs), True))
                 else:
                     child_pipe.send((function, True))
 
-            elif command == '_setattr':
+            elif command == "_setattr":
                 name, value = data
                 setattr(env, name, value)
                 child_pipe.send((None, True))
-            elif command == '_check_spaces':
-                child_pipe.send((
+            elif command == "_check_spaces":
+                child_pipe.send(
                     (
-                        data[0] == obs_space,
-                        data[1] == state_space,
-                        data[2] == env.action_space,
-                    ),
-                    True,
-                ))
+                        (
+                            data[0] == obs_space,
+                            data[1] == state_space,
+                            data[2] == env.action_space,
+                        ),
+                        True,
+                    )
+                )
             else:
                 raise RuntimeError(
-                    f'Received unknown command `{command}`. Must '
-                    'be one of {`reset`, `step`, `seed`, `close`, `_call`, '
-                    '`_setattr`, `_check_spaces`}.')
+                    f"Received unknown command `{command}`. Must "
+                    "be one of {`reset`, `step`, `seed`, `close`, `_call`, "
+                    "`_setattr`, `_check_spaces`}."
+                )
         except (KeyboardInterrupt, Exception):
-            error_queue.put((index, ) + sys.exc_info()[:2])
+            error_queue.put((index,) + sys.exc_info()[:2])
             child_pipe.send((None, False))
         finally:
             env.close()

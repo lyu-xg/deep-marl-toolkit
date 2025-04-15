@@ -3,7 +3,7 @@ import sys
 import numpy as np
 import torch
 
-sys.path.append('../')
+sys.path.append("../")
 
 from configs.arguments import get_common_args
 from marltoolkit.agents.mappo_agent import MAPPOAgent
@@ -23,55 +23,57 @@ class SMACRunner:
 
     def __init__(self, args) -> None:
         #
-        if args.algorithm_name == 'rmappo':
+        if args.algorithm_name == "rmappo":
             args.use_recurrent_policy = True
             args.use_naive_recurrent_policy = False
 
-        if args.algorithm_name == 'rmappo':
+        if args.algorithm_name == "rmappo":
             print(
-                'u are choosing to use rmappo, we set use_recurrent_policy to be True'
+                "u are choosing to use rmappo, we set use_recurrent_policy to be True"
             )
             args.use_recurrent_policy = True
             args.use_naive_recurrent_policy = False
-        elif (args.algorithm_name == 'mappo' or args.algorithm_name == 'mat'
-              or args.algorithm_name == 'mat_dec'):
-            assert (args.use_recurrent_policy is False
-                    and args.use_naive_recurrent_policy is False
-                    ), 'check recurrent policy!'
+        elif (
+            args.algorithm_name == "mappo"
+            or args.algorithm_name == "mat"
+            or args.algorithm_name == "mat_dec"
+        ):
+            assert (
+                args.use_recurrent_policy is False
+                and args.use_naive_recurrent_policy is False
+            ), "check recurrent policy!"
             print(
-                'U are choosing to use mappo, we set use_recurrent_policy & use_naive_recurrent_policy to be False'
+                "U are choosing to use mappo, we set use_recurrent_policy & use_naive_recurrent_policy to be False"
             )
             args.use_recurrent_policy = False
             args.use_naive_recurrent_policy = False
 
-        elif args.algorithm_name == 'ippo':
-            print(
-                'u are choosing to use ippo, we set use_centralized_v to be False'
-            )
+        elif args.algorithm_name == "ippo":
+            print("u are choosing to use ippo, we set use_centralized_v to be False")
             args.use_centralized_v = False
-        elif args.algorithm_name == 'happo' or args.algorithm_name == 'hatrpo':
+        elif args.algorithm_name == "happo" or args.algorithm_name == "hatrpo":
             # can or cannot use recurrent network?
-            print('using', args.algorithm_name, 'without recurrent network')
+            print("using", args.algorithm_name, "without recurrent network")
             args.use_recurrent_policy = False
             args.use_naive_recurrent_policy = False
         else:
             raise NotImplementedError
 
-        if args.algorithm_name == 'mat_dec':
+        if args.algorithm_name == "mat_dec":
             args.dec_actor = True
             args.share_actor = True
 
         # cuda
         if args.cuda and torch.cuda.is_available():
-            print('choose to use gpu...')
-            args.device = torch.device('cuda:0')
+            print("choose to use gpu...")
+            args.device = torch.device("cuda:0")
             torch.set_num_threads(args.n_training_threads)
             if args.cuda_deterministic:
                 torch.backends.cudnn.benchmark = False
                 torch.backends.cudnn.deterministic = True
         else:
-            print('choose to use cpu...')
-            args.device = torch.device('cpu')
+            print("choose to use cpu...")
+            args.device = torch.device("cpu")
             torch.set_num_threads(args.n_training_threads)
 
         # parameters
@@ -91,9 +93,9 @@ class SMACRunner:
         args.state_dim = self.env.state_dim
         args.obs_shape = self.env.get_actor_input_shape()
 
-        print('obs_shape: ', self.env.obs_shape)
-        print('state_shape: ', self.env.state_shape)
-        print('action_shape: ', self.env.action_shape)
+        print("obs_shape: ", self.env.obs_shape)
+        print("state_shape: ", self.env.state_shape)
+        print("action_shape: ", self.env.action_shape)
 
         # policy network
         self.agent = MAPPOAgent(args)
@@ -129,7 +131,8 @@ class SMACRunner:
                 ) = self.collect(step)
                 # Obser reward and next obs
                 obs, state, rewards, terminated, truncated, infos = self.env.step(
-                    actions)
+                    actions
+                )
                 available_actions = self.env.get_available_actions()
                 dones = terminated or truncated
 
@@ -187,15 +190,14 @@ class SMACRunner:
             data[idx] = torch.tensor(data[idx]).to(args.device)
 
         value, action, action_log_prob, rnn_state, rnn_state_critic = (
-            self.agent.get_actions(*data))
+            self.agent.get_actions(*data)
+        )
         # [self.env, agents, dim]
         values = np.array(np.split(_t2n(value), self.num_envs))
         actions = np.array(np.split(_t2n(action), self.num_envs))
-        action_log_probs = np.array(
-            np.split(_t2n(action_log_prob), self.num_envs))
+        action_log_probs = np.array(np.split(_t2n(action_log_prob), self.num_envs))
         rnn_states = np.array(np.split(_t2n(rnn_state), self.num_envs))
-        rnn_states_critic = np.array(
-            np.split(_t2n(rnn_state_critic), self.num_envs))
+        rnn_states_critic = np.array(np.split(_t2n(rnn_state_critic), self.num_envs))
 
         return values, actions, action_log_probs, rnn_states, rnn_states_critic
 
@@ -240,18 +242,26 @@ class SMACRunner:
 
         masks = np.ones((self.num_envs, self.num_agents, 1), dtype=np.float32)
         masks[dones_env is True] = np.zeros(
-            ((dones_env is True).sum(), self.num_agents, 1), dtype=np.float32)
+            ((dones_env is True).sum(), self.num_agents, 1), dtype=np.float32
+        )
 
-        active_masks = np.ones((self.num_envs, self.num_agents, 1),
-                               dtype=np.float32)
-        active_masks[dones is True] = np.zeros(((dones is True).sum(), 1),
-                                               dtype=np.float32)
+        active_masks = np.ones((self.num_envs, self.num_agents, 1), dtype=np.float32)
+        active_masks[dones is True] = np.zeros(
+            ((dones is True).sum(), 1), dtype=np.float32
+        )
         active_masks[dones_env is True] = np.ones(
-            ((dones_env is True).sum(), self.num_agents, 1), dtype=np.float32)
+            ((dones_env is True).sum(), self.num_agents, 1), dtype=np.float32
+        )
 
         bad_masks = np.array(
-            [[[0.0] if info[agent_id]['bad_transition'] else [1.0]
-              for agent_id in range(self.num_agents)] for info in infos])
+            [
+                [
+                    [0.0] if info[agent_id]["bad_transition"] else [1.0]
+                    for agent_id in range(self.num_agents)
+                ]
+                for info in infos
+            ]
+        )
 
         if not self.use_centralized_v:
             state = obs
@@ -275,7 +285,7 @@ class SMACRunner:
     def compute(self):
         """Calculate returns for the collected data."""
         self.agent.prep_rollout()
-        if self.algorithm_name == 'mat' or self.algorithm_name == 'mat_dec':
+        if self.algorithm_name == "mat" or self.algorithm_name == "mat_dec":
             next_values = self.agent.get_values(
                 np.concatenate(self.buffer.state[-1]),
                 np.concatenate(self.buffer.obs[-1]),
@@ -299,7 +309,7 @@ class SMACRunner:
         return train_infos
 
 
-if __name__ == '__main__':
+if __name__ == "__main__":
     args = get_common_args()
     runner = SMACRunner(args)
     runner.run(args)

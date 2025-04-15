@@ -8,8 +8,9 @@ import numpy as np
 from gymnasium import spaces
 
 
-def unwrap_wrapper(env: gym.Env,
-                   wrapper_class: Type[gym.Wrapper]) -> Optional[gym.Wrapper]:
+def unwrap_wrapper(
+    env: gym.Env, wrapper_class: Type[gym.Wrapper]
+) -> Optional[gym.Wrapper]:
     """Retrieve a ``VecEnvWrapper`` object by recursively searching.
 
     :param env: Environment to unwrap
@@ -57,10 +58,11 @@ def flatten_list(lst: Union[List, Tuple]) -> List:
     [1, 2, 3, 4, 5, 6]
     """
     # Check input conditions
-    assert isinstance(lst, (list, tuple)), 'Input must be a list or tuple'
-    assert len(lst) > 0, 'Input must have length > 0'
-    assert all(len(sub_lst) > 0
-               for sub_lst in lst), 'Sublists/tuples must have length > 0'
+    assert isinstance(lst, (list, tuple)), "Input must be a list or tuple"
+    assert len(lst) > 0, "Input must have length > 0"
+    assert all(
+        len(sub_lst) > 0 for sub_lst in lst
+    ), "Sublists/tuples must have length > 0"
 
     # Flatten the list
     return [item for sublist in lst for item in sublist]
@@ -77,26 +79,28 @@ def flatten_obs(obs, space: gym.spaces.Space):
             Each NumPy array has the environment index as its first axis.
     """
     assert isinstance(
-        obs, (list,
-              tuple)), 'expected list or tuple of observations per environment'
-    assert len(obs) > 0, 'need observations from at least one environment'
+        obs, (list, tuple)
+    ), "expected list or tuple of observations per environment"
+    assert len(obs) > 0, "need observations from at least one environment"
 
     if isinstance(space, gym.spaces.Dict):
         assert isinstance(
-            space.spaces,
-            OrderedDict), 'Dict space must have ordered subspaces'
+            space.spaces, OrderedDict
+        ), "Dict space must have ordered subspaces"
         assert isinstance(
             obs[0], dict
-        ), 'non-dict observation for environment with Dict observation space'
-        return OrderedDict([(k, np.stack([o[k] for o in obs]))
-                            for k in space.spaces.keys()])
+        ), "non-dict observation for environment with Dict observation space"
+        return OrderedDict(
+            [(k, np.stack([o[k] for o in obs])) for k in space.spaces.keys()]
+        )
     elif isinstance(space, gym.spaces.Tuple):
         assert isinstance(
             obs[0], tuple
-        ), 'non-tuple observation for environment with Tuple observation space'
+        ), "non-tuple observation for environment with Tuple observation space"
         obs_len = len(space.spaces)
-        return tuple(np.stack([o[i] for o in obs])
-                     for i in range(obs_len))  # type: ignore[index]
+        return tuple(
+            np.stack([o[i] for o in obs]) for i in range(obs_len)
+        )  # type: ignore[index]
     else:
         return np.stack(obs)  # type: ignore[arg-type]
 
@@ -108,7 +112,8 @@ def copy_obs_dict(obs: Dict[str, np.ndarray]) -> Dict[str, np.ndarray]:
     :return: a dict of copied numpy arrays.
     """
     assert isinstance(
-        obs, OrderedDict), f"unexpected type for observations '{type(obs)}'"
+        obs, OrderedDict
+    ), f"unexpected type for observations '{type(obs)}'"
     return OrderedDict([(k, np.copy(v)) for k, v in obs.items()])
 
 
@@ -129,12 +134,12 @@ def dict_to_obs(
     elif isinstance(obs_space, spaces.Tuple):
         assert len(obs_dict) == len(
             obs_space.spaces
-        ), 'size of observation does not match size of observation space'
+        ), "size of observation does not match size of observation space"
         return tuple(obs_dict[i] for i in range(len(obs_space.spaces)))
     else:
         assert set(obs_dict.keys()) == {
             None
-        }, 'multiple observation keys for unstructured observation space'
+        }, "multiple observation keys for unstructured observation space"
         return obs_dict[None]
 
 
@@ -156,17 +161,17 @@ def obs_space_info(
     check_for_nested_spaces(obs_space)
     if isinstance(obs_space, spaces.Dict):
         assert isinstance(
-            obs_space.spaces,
-            OrderedDict), 'Dict space must have ordered subspaces'
+            obs_space.spaces, OrderedDict
+        ), "Dict space must have ordered subspaces"
         subspaces = obs_space.spaces
     elif isinstance(obs_space, spaces.Tuple):
-        subspaces = {i: space
-                     for i, space in enumerate(obs_space.spaces)
-                     }  # type: ignore[assignment]
+        subspaces = {
+            i: space for i, space in enumerate(obs_space.spaces)
+        }  # type: ignore[assignment]
     else:
         assert not hasattr(
-            obs_space,
-            'spaces'), f"Unsupported structured space '{type(obs_space)}'"
+            obs_space, "spaces"
+        ), f"Unsupported structured space '{type(obs_space)}'"
         subspaces = {None: obs_space}  # type: ignore[assignment]
     keys = []
     shapes = {}
@@ -178,8 +183,7 @@ def obs_space_info(
     return keys, shapes, dtypes
 
 
-def tile_images(
-        images_nhwc: Sequence[np.ndarray]) -> np.ndarray:  # pragma: no cover
+def tile_images(images_nhwc: Sequence[np.ndarray]) -> np.ndarray:  # pragma: no cover
     """Tile N images into one big PxQ image (P,Q) are chosen to be as close as
     possible, and if N is square, then P=Q.
 
@@ -194,22 +198,21 @@ def tile_images(
     # new_width was named W before
     new_width = int(np.ceil(float(n_images) / new_height))
     img_nhwc = np.array(
-        list(img_nhwc) +
-        [img_nhwc[0] * 0 for _ in range(n_images, new_height * new_width)])
+        list(img_nhwc)
+        + [img_nhwc[0] * 0 for _ in range(n_images, new_height * new_width)]
+    )
     # img_HWhwc
-    out_image = img_nhwc.reshape(
-        (new_height, new_width, height, width, n_channels))
+    out_image = img_nhwc.reshape((new_height, new_width, height, width, n_channels))
     # img_HhWwc
     out_image = out_image.transpose(0, 2, 1, 3, 4)
     # img_Hh_Ww_c
-    out_image = out_image.reshape(
-        (new_height * height, new_width * width, n_channels))
+    out_image = out_image.reshape((new_height * height, new_width * width, n_channels))
     return out_image
 
 
 def combined_shape(
-        length: int,
-        shape: Union[None, int, Tuple[int, ...]] = None) -> Tuple[int, ...]:
+    length: int, shape: Union[None, int, Tuple[int, ...]] = None
+) -> Tuple[int, ...]:
     """Expand the original shape.
 
     Parameters:
@@ -233,7 +236,7 @@ def combined_shape(
     (2, 4, 5)
     """
     if shape is None:
-        return (length, )
+        return (length,)
     return (length, shape) if np.isscalar(shape) else (length, *shape)
 
 
@@ -245,10 +248,13 @@ def check_for_nested_spaces(obs_space: spaces.Space) -> None:
     :param obs_space: an observation space
     """
     if isinstance(obs_space, (spaces.Dict, spaces.Tuple)):
-        sub_spaces = (obs_space.spaces.values() if isinstance(
-            obs_space, spaces.Dict) else obs_space.spaces)
+        sub_spaces = (
+            obs_space.spaces.values()
+            if isinstance(obs_space, spaces.Dict)
+            else obs_space.spaces
+        )
         for sub_space in sub_spaces:
             if isinstance(sub_space, (spaces.Dict, spaces.Tuple)):
                 raise NotImplementedError(
-                    'Nested observation spaces are not supported (Tuple/Dict space inside Tuple/Dict space).'
+                    "Nested observation spaces are not supported (Tuple/Dict space inside Tuple/Dict space)."
                 )

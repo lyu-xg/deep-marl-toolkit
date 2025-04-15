@@ -55,12 +55,11 @@ def run_train_episode(
                 # Fill the rest of the episode with zeros
                 filled[episode_step, env_idx, :] = 0
                 # Get the episode score from the info
-                final_info = info['final_info']
-                episode_score[env_idx] = final_info[env_idx]['episode_score']
+                final_info = info["final_info"]
+                episode_score[env_idx] = final_info[env_idx]["episode_score"]
                 # Get the current available actions
                 available_actions = envs.get_available_actions()
-                terminal_data = (next_obs, next_state, available_actions,
-                                 filled)
+                terminal_data = (next_obs, next_state, available_actions, filled)
                 # Finish the episode
                 rpm.finish_path(env_idx, episode_step, *terminal_data)
 

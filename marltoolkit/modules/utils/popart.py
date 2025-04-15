@@ -9,13 +9,13 @@ import torch.nn.functional as F
 class PopArt(torch.nn.Module):
 
     def __init__(
-            self,
-            input_shape,
-            output_shape,
-            norm_axes=1,
-            beta=0.99999,
-            epsilon=1e-5,
-            device=torch.device('cpu'),
+        self,
+        input_shape,
+        output_shape,
+        norm_axes=1,
+        beta=0.99999,
+        epsilon=1e-5,
+        device=torch.device("cpu"),
     ):
         super(PopArt, self).__init__()
 
@@ -27,26 +27,30 @@ class PopArt(torch.nn.Module):
         self.input_shape = input_shape
         self.output_shape = output_shape
 
-        self.weight = nn.Parameter(torch.Tensor(output_shape,
-                                                input_shape)).to(**self.tpdv)
+        self.weight = nn.Parameter(torch.Tensor(output_shape, input_shape)).to(
+            **self.tpdv
+        )
         self.bias = nn.Parameter(torch.Tensor(output_shape)).to(**self.tpdv)
 
-        self.stddev = nn.Parameter(torch.ones(output_shape),
-                                   requires_grad=False).to(**self.tpdv)
-        self.mean = nn.Parameter(torch.zeros(output_shape),
-                                 requires_grad=False).to(**self.tpdv)
-        self.mean_sq = nn.Parameter(torch.zeros(output_shape),
-                                    requires_grad=False).to(**self.tpdv)
-        self.debiasing_term = nn.Parameter(torch.tensor(0.0),
-                                           requires_grad=False).to(**self.tpdv)
+        self.stddev = nn.Parameter(torch.ones(output_shape), requires_grad=False).to(
+            **self.tpdv
+        )
+        self.mean = nn.Parameter(torch.zeros(output_shape), requires_grad=False).to(
+            **self.tpdv
+        )
+        self.mean_sq = nn.Parameter(torch.zeros(output_shape), requires_grad=False).to(
+            **self.tpdv
+        )
+        self.debiasing_term = nn.Parameter(torch.tensor(0.0), requires_grad=False).to(
+            **self.tpdv
+        )
 
         self.reset_parameters()
 
     def reset_parameters(self):
         torch.nn.init.kaiming_uniform_(self.weight, a=math.sqrt(5))
         if self.bias is not None:
-            fan_in, _ = torch.nn.init._calculate_fan_in_and_fan_out(
-                self.weight)
+            fan_in, _ = torch.nn.init._calculate_fan_in_and_fan_out(self.weight)
             bound = 1 / math.sqrt(fan_in)
             torch.nn.init.uniform_(self.bias, -bound, bound)
         self.mean.zero_()
@@ -70,8 +74,7 @@ class PopArt(torch.nn.Module):
         old_stddev = torch.sqrt(old_var)
 
         batch_mean = input_vector.mean(dim=tuple(range(self.norm_axes)))
-        batch_sq_mean = (input_vector**2).mean(
-            dim=tuple(range(self.norm_axes)))
+        batch_sq_mean = (input_vector**2).mean(dim=tuple(range(self.norm_axes)))
 
         self.mean.mul_(self.beta).add_(batch_mean * (1.0 - self.beta))
         self.mean_sq.mul_(self.beta).add_(batch_sq_mean * (1.0 - self.beta))
@@ -87,8 +90,7 @@ class PopArt(torch.nn.Module):
 
     def debiased_mean_var(self):
         debiased_mean = self.mean / self.debiasing_term.clamp(min=self.epsilon)
-        debiased_mean_sq = self.mean_sq / self.debiasing_term.clamp(
-            min=self.epsilon)
+        debiased_mean_sq = self.mean_sq / self.debiasing_term.clamp(min=self.epsilon)
         debiased_var = (debiased_mean_sq - debiased_mean**2).clamp(min=1e-2)
         return debiased_mean, debiased_var
 
@@ -98,8 +100,9 @@ class PopArt(torch.nn.Module):
         input_vector = input_vector.to(**self.tpdv)
 
         mean, var = self.debiased_mean_var()
-        out = (input_vector - mean[(None, ) * self.norm_axes]
-               ) / torch.sqrt(var)[(None, ) * self.norm_axes]
+        out = (input_vector - mean[(None,) * self.norm_axes]) / torch.sqrt(var)[
+            (None,) * self.norm_axes
+        ]
 
         return out
 
@@ -109,8 +112,10 @@ class PopArt(torch.nn.Module):
         input_vector = input_vector.to(**self.tpdv)
 
         mean, var = self.debiased_mean_var()
-        out = (input_vector * torch.sqrt(var)[(None, ) * self.norm_axes] +
-               mean[(None, ) * self.norm_axes])
+        out = (
+            input_vector * torch.sqrt(var)[(None,) * self.norm_axes]
+            + mean[(None,) * self.norm_axes]
+        )
 
         out = out.cpu().numpy()
 

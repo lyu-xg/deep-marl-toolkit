@@ -9,16 +9,15 @@ from smac.env import StarCraft2Env
 from marltoolkit.envs.base_env import MultiAgentEnv
 from marltoolkit.utils.transforms import OneHotTransform
 
-AgentID = TypeVar('AgentID')
+AgentID = TypeVar("AgentID")
 
 
 class SMACWrapperEnv(object):
     """Wrapper for StarCraft2Env providing a more user-friendly interface."""
 
-    def __init__(self,
-                 map_name: str,
-                 args: argparse.Namespace = None,
-                 **kwargs) -> None:
+    def __init__(
+        self, map_name: str, args: argparse.Namespace = None, **kwargs
+    ) -> None:
         """Initialize the SC2Env.
 
         Parameters:
@@ -31,27 +30,27 @@ class SMACWrapperEnv(object):
         # Number of agents and enemies
         self.num_agents = self.env.n_agents
         self.num_enemies = self.env.n_enemies
-        self.agents = ['agent_{}'.format(i) for i in range(self.num_agents)]
+        self.agents = ["agent_{}".format(i) for i in range(self.num_agents)]
 
         # Number of actions
-        self.action_dim = self.env_info['n_actions']
-        self.n_actions = self.env_info['n_actions']
+        self.action_dim = self.env_info["n_actions"]
+        self.n_actions = self.env_info["n_actions"]
 
         # State and observation dims
-        self.obs_dim = self.env_info['obs_shape']
-        self.state_dim = self.env_info['state_shape']
+        self.obs_dim = self.env_info["obs_shape"]
+        self.state_dim = self.env_info["state_shape"]
 
         # Reward and done shapes
         self.reward_dim = 1
         self.done_dim = 1
 
         # Observation and state shapes
-        self.obs_shape = (self.obs_dim, )
-        self.action_shape = (self.action_dim, )
-        self.avaliable_action_shape = (self.action_dim, )
-        self.state_shape = (self.state_dim, )
-        self.reward_shape = (self.reward_dim, )
-        self.done_shape = (self.done_dim, )
+        self.obs_shape = (self.obs_dim,)
+        self.action_shape = (self.action_dim,)
+        self.avaliable_action_shape = (self.action_dim,)
+        self.state_shape = (self.state_dim,)
+        self.reward_shape = (self.reward_dim,)
+        self.done_shape = (self.done_dim,)
 
         # Multi-Agent Observation, State, and Action Shapes
         self.obs_shapes = []
@@ -63,8 +62,8 @@ class SMACWrapperEnv(object):
             self.action_shapes.append(self.action_shape)
 
         # Space
-        self.obs_space = Box(-np.inf, np.inf, shape=(self.obs_dim, ))
-        self.state_space = Box(-np.inf, np.inf, shape=(self.state_dim, ))
+        self.obs_space = Box(-np.inf, np.inf, shape=(self.obs_dim,))
+        self.state_space = Box(-np.inf, np.inf, shape=(self.state_dim,))
         self.action_space = Discrete(self.n_actions)
 
         # Multi-Agent Sapces
@@ -72,16 +71,12 @@ class SMACWrapperEnv(object):
         self.state_spaces: dict[AgentID, gym.spaces.Space] = {}
         self.action_spaces: dict[AgentID, gym.spaces.Space] = {}
         for agent_id in self.agents:
-            self.obs_spaces[agent_id] = Box(-np.inf,
-                                            np.inf,
-                                            shape=(self.obs_dim, ))
-            self.state_spaces[agent_id] = Box(-np.inf,
-                                              np.inf,
-                                              shape=(self.state_dim, ))
+            self.obs_spaces[agent_id] = Box(-np.inf, np.inf, shape=(self.obs_dim,))
+            self.state_spaces[agent_id] = Box(-np.inf, np.inf, shape=(self.state_dim,))
             self.action_spaces[agent_id] = Discrete(self.n_actions)
 
         # Max episode steps
-        self.episode_limit = self.env_info['episode_limit']
+        self.episode_limit = self.env_info["episode_limit"]
         self.filled = np.zeros([self.episode_limit, 1], bool)
 
         # one-hot transform
@@ -90,9 +85,9 @@ class SMACWrapperEnv(object):
 
         # Buffer information
         self.buf_info = {
-            'battle_won': 0,
-            'dead_allies': 0,
-            'dead_enemies': 0,
+            "battle_won": 0,
+            "dead_allies": 0,
+            "dead_enemies": 0,
         }
 
         # Episode variables
@@ -100,7 +95,7 @@ class SMACWrapperEnv(object):
         self._episode_score = 0
 
         # Render Mode
-        self.render_mode = 'human'
+        self.render_mode = "human"
 
     @property
     def win_counted(self):
@@ -123,9 +118,8 @@ class SMACWrapperEnv(object):
     def get_available_agent_actions(self):
         action_dict = {}
         for agent_index in range(self.num_agents):
-            agent_index = 'agent_{}'.format(agent_index)
-            action_dict[agent_index] = self.env.get_avail_agent_actions(
-                agent_index)
+            agent_index = "agent_{}".format(agent_index)
+            action_dict[agent_index] = self.env.get_avail_agent_actions(agent_index)
         return action_dict
 
     def get_agents_id_one_hot(self):
@@ -182,7 +176,7 @@ class SMACWrapperEnv(object):
 
     def get_actor_input_shape(self) -> None:
         input_dim = self.get_actor_input_dim()
-        return (input_dim, )
+        return (input_dim,)
 
     def get_critic_input_dim(self) -> None:
         """Get the input dim of the critic model.
@@ -204,7 +198,7 @@ class SMACWrapperEnv(object):
 
     def get_critic_input_shape(self) -> None:
         input_dim = self.get_critic_input_dim()
-        return (input_dim, )
+        return (input_dim,)
 
     def close(self):
         """Close the environment."""
@@ -245,15 +239,15 @@ class SMACWrapperEnv(object):
         for agent_index in range(self.num_agents):
             obs_one_agent = obs[agent_index]
             state_one_agent = state
-            agent_index = 'agent_{}'.format(agent_index)
+            agent_index = "agent_{}".format(agent_index)
             obs_dict[agent_index] = obs_one_agent
             state_dict[agent_index] = state_one_agent
 
         self._episode_step = 0
         self._episode_score = 0
         info = {
-            'episode_step': self._episode_step,
-            'episode_score': self._episode_score,
+            "episode_step": self._episode_step,
+            "episode_score": self._episode_score,
         }
         last_actions = self.get_actions_one_hot()
         agents_id_onehot = self.get_agents_id_one_hot()
@@ -286,8 +280,8 @@ class SMACWrapperEnv(object):
         self._episode_step += 1
         self._episode_score += reward
 
-        info['episode_step'] = self._episode_step
-        info['episode_score'] = self._episode_score
+        info["episode_step"] = self._episode_step
+        info["episode_score"] = self._episode_score
 
         truncated = True if self._episode_step >= self.episode_limit else False
 
@@ -329,14 +323,14 @@ class SMACWrapperEnv(object):
     def get_env_info(self) -> dict[str, Any]:
         """Get the environment information."""
         env_info = {
-            'obs_shape': self.obs_shape,
-            'obs_space': self.obs_space,
-            'state_shape': self.state_shape,
-            'state_space': self.state_space,
-            'n_actions': self.n_actions,
-            'action_space': self.action_space,
-            'num_agents': self.num_agents,
-            'episode_limit': self.episode_limit,
+            "obs_shape": self.obs_shape,
+            "obs_space": self.obs_space,
+            "state_shape": self.state_shape,
+            "state_space": self.state_space,
+            "n_actions": self.n_actions,
+            "action_space": self.action_space,
+            "num_agents": self.num_agents,
+            "episode_limit": self.episode_limit,
         }
         return env_info
 
@@ -348,18 +342,17 @@ class RLlibSMAC(MultiAgentEnv):
 
         env_info = self.env.get_env_info()
         self.num_agents = self.env.n_agents
-        self.agents = ['agent_{}'.format(i) for i in range(self.num_agents)]
-        obs_shape = env_info['obs_shape']
-        n_actions = env_info['n_actions']
-        state_shape = env_info['state_shape']
-        self.observation_space = Dict({
-            'obs':
-            Box(-2.0, 2.0, shape=(obs_shape, )),
-            'state':
-            Box(-2.0, 2.0, shape=(state_shape, )),
-            'action_mask':
-            Box(-2.0, 2.0, shape=(n_actions, )),
-        })
+        self.agents = ["agent_{}".format(i) for i in range(self.num_agents)]
+        obs_shape = env_info["obs_shape"]
+        n_actions = env_info["n_actions"]
+        state_shape = env_info["state_shape"]
+        self.observation_space = Dict(
+            {
+                "obs": Box(-2.0, 2.0, shape=(obs_shape,)),
+                "state": Box(-2.0, 2.0, shape=(state_shape,)),
+                "action_mask": Box(-2.0, 2.0, shape=(n_actions,)),
+            }
+        )
         self.action_space = Discrete(n_actions)
 
     def reset(self):
@@ -371,13 +364,13 @@ class RLlibSMAC(MultiAgentEnv):
             obs_one_agent = obs_smac[agent_index]
             state_one_agent = state_smac
             action_mask_one_agent = np.array(
-                self.env.get_avail_agent_actions(agent_index)).astype(
-                    np.float32)
-            agent_index = 'agent_{}'.format(agent_index)
+                self.env.get_avail_agent_actions(agent_index)
+            ).astype(np.float32)
+            agent_index = "agent_{}".format(agent_index)
             obs_dict[agent_index] = {
-                'obs': obs_one_agent,
-                'state': state_one_agent,
-                'action_mask': action_mask_one_agent,
+                "obs": obs_one_agent,
+                "state": state_one_agent,
+                "action_mask": action_mask_one_agent,
             }
 
         return obs_dict
@@ -396,26 +389,26 @@ class RLlibSMAC(MultiAgentEnv):
             obs_one_agent = obs_smac[agent_index]
             state_one_agent = state_smac
             action_mask_one_agent = np.array(
-                self.env.get_avail_agent_actions(agent_index)).astype(
-                    np.float32)
-            agent_index = 'agent_{}'.format(agent_index)
+                self.env.get_avail_agent_actions(agent_index)
+            ).astype(np.float32)
+            agent_index = "agent_{}".format(agent_index)
             obs_dict[agent_index] = {
-                'obs': obs_one_agent,
-                'state': state_one_agent,
-                'action_mask': action_mask_one_agent,
+                "obs": obs_one_agent,
+                "state": state_one_agent,
+                "action_mask": action_mask_one_agent,
             }
             reward_dict[agent_index] = reward
 
-        dones = {'__all__': terminated}
+        dones = {"__all__": terminated}
 
         return obs_dict, reward_dict, dones, {}
 
     def get_env_info(self):
         env_info = {
-            'space_obs': self.observation_space,
-            'space_act': self.action_space,
-            'num_agents': self.num_agents,
-            'episode_limit': self.env.episode_limit,
+            "space_obs": self.observation_space,
+            "space_act": self.action_space,
+            "num_agents": self.num_agents,
+            "episode_limit": self.env.episode_limit,
         }
         return env_info
 

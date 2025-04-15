@@ -3,7 +3,7 @@ from typing import Dict, Tuple, Union
 import numpy as np
 import torch
 
-__all__ = ['EpisodeData', 'ReplayBuffer']
+__all__ = ["EpisodeData", "ReplayBuffer"]
 
 
 class EpisodeData:
@@ -55,32 +55,33 @@ class EpisodeData:
                 dtype=np.float32,
             ),
             actions=np.zeros(
-                (self.episode_limit, ) + (self.num_agents, ),
+                (self.episode_limit,) + (self.num_agents,),
                 dtype=np.int8,
             ),
             available_actions=np.zeros(
                 (
                     self.episode_limit,
                     self.num_agents,
-                ) + self.action_shape,
+                )
+                + self.action_shape,
                 dtype=np.int8,
             ),
             rewards=np.zeros(
-                (self.episode_limit, ) + self.reward_shape,
+                (self.episode_limit,) + self.reward_shape,
                 dtype=np.float32,
             ),
             dones=np.zeros(
-                (self.episode_limit, ) + self.done_shape,
+                (self.episode_limit,) + self.done_shape,
                 dtype=np.bool_,
             ),
             filled=np.zeros(
-                (self.episode_limit, ) + self.done_shape,
+                (self.episode_limit,) + self.done_shape,
                 dtype=np.bool_,
             ),
         )
         if self.store_global_state:
-            self.episode_buffer['state'] = np.zeros(
-                (self.episode_limit, ) + self.state_shape,
+            self.episode_buffer["state"] = np.zeros(
+                (self.episode_limit,) + self.state_shape,
                 dtype=np.float32,
             )
 
@@ -111,8 +112,8 @@ class EpisodeData:
     def fill_mask(self) -> None:
         """Fill the mask for the current step."""
         assert self.size() < self.episode_limit
-        self.episode_buffer['filled'][self.curr_ptr] = True
-        self.episode_buffer['dones'][self.curr_ptr] = True
+        self.episode_buffer["filled"][self.curr_ptr] = True
+        self.episode_buffer["dones"][self.curr_ptr] = True
 
         self.curr_ptr += 1
         self.curr_size = min(self.curr_size + 1, self.episode_limit)
@@ -156,7 +157,7 @@ class ReplayBuffer:
         action_shape: Union[int, Tuple],
         reward_shape: Union[int, Tuple],
         done_shape: Union[int, Tuple],
-        device: Union[torch.device, str] = 'cpu',
+        device: Union[torch.device, str] = "cpu",
     ) -> None:
         """Initialize MaReplayBuffer.
 
@@ -207,14 +208,16 @@ class ReplayBuffer:
                     self.max_size,
                     self.episode_limit,
                     self.num_agents,
-                ) + self.obs_shape,
+                )
+                + self.obs_shape,
                 dtype=np.float32,
             ),
             actions=np.zeros(
                 (
                     self.max_size,
                     self.episode_limit,
-                ) + (self.num_agents, ),
+                )
+                + (self.num_agents,),
                 dtype=np.int8,
             ),
             available_actions=np.zeros(
@@ -222,37 +225,42 @@ class ReplayBuffer:
                     self.max_size,
                     self.episode_limit,
                     self.num_agents,
-                ) + self.action_shape,
+                )
+                + self.action_shape,
                 dtype=np.int8,
             ),
             rewards=np.zeros(
                 (
                     self.max_size,
                     self.episode_limit,
-                ) + self.reward_shape,
+                )
+                + self.reward_shape,
                 dtype=np.float32,
             ),
             dones=np.zeros(
                 (
                     self.max_size,
                     self.episode_limit,
-                ) + self.done_shape,
+                )
+                + self.done_shape,
                 dtype=np.bool_,
             ),
             filled=np.zeros(
                 (
                     self.max_size,
                     self.episode_limit,
-                ) + self.done_shape,
+                )
+                + self.done_shape,
                 dtype=np.bool_,
             ),
         )
         if self.store_global_state:
-            self.buffers['state'] = np.zeros(
+            self.buffers["state"] = np.zeros(
                 (
                     self.max_size,
                     self.episode_limit,
-                ) + self.state_shape,
+                )
+                + self.state_shape,
                 dtype=np.float32,
             )
 
@@ -260,8 +268,7 @@ class ReplayBuffer:
         self.curr_ptr = 0
         self.curr_size = 0
 
-    def store_episodes(self,
-                       episode_buffer: Dict[str, np.ndarray] = None) -> None:
+    def store_episodes(self, episode_buffer: Dict[str, np.ndarray] = None) -> None:
         """Store a episode data in the replay buffer.
 
         Parameters:
@@ -312,9 +319,7 @@ class ReplayBuffer:
             return torch.tensor(array, device=self.device)
         return torch.as_tensor(array, device=self.device)
 
-    def sample(self,
-               batch_size: int,
-               to_torch: bool = True) -> Dict[str, torch.Tensor]:
+    def sample(self, batch_size: int, to_torch: bool = True) -> Dict[str, torch.Tensor]:
         """Sample a batch from the replay buffer.
 
         Parameters:
@@ -325,7 +330,7 @@ class ReplayBuffer:
         """
         assert (
             batch_size < self.curr_size
-        ), f'Batch Size: {batch_size} is larger than the current Buffer Size:{self.curr_size}'
+        ), f"Batch Size: {batch_size} is larger than the current Buffer Size:{self.curr_size}"
 
         idx = np.random.randint(self.curr_size, size=batch_size)
 

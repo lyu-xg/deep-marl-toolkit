@@ -21,9 +21,7 @@ def get_root_logger(log_file=None, log_level=logging.INFO):
     Returns:
         :obj:`logging.Logger`: The obtained logger
     """
-    logger = get_logger(name='marltoolkit',
-                        log_file=log_file,
-                        log_level=log_level)
+    logger = get_logger(name="marltoolkit", log_file=log_file, log_level=log_level)
 
     return logger
 
@@ -34,10 +32,10 @@ def get_outdir(path, *paths, inc=False):
         os.makedirs(outdir)
     elif inc:
         count = 1
-        outdir_inc = outdir + '-' + str(count)
+        outdir_inc = outdir + "-" + str(count)
         while os.path.exists(outdir_inc):
             count = count + 1
-            outdir_inc = outdir + '-' + str(count)
+            outdir_inc = outdir + "-" + str(count)
             assert count < 100
         outdir = outdir_inc
         os.makedirs(outdir)
@@ -56,8 +54,7 @@ def avg_val_from_list_of_dicts(list_of_dicts):
 
     # Calculate the average values using a dictionary comprehension
     avg_val_dict = {
-        key: sum_value / count_dicts[key]
-        for key, sum_value in sum_values.items()
+        key: sum_value / count_dicts[key] for key, sum_value in sum_values.items()
     }
 
     return avg_val_dict
@@ -65,7 +62,7 @@ def avg_val_from_list_of_dicts(list_of_dicts):
 
 def update_summary(train_metrics, eval_metrics, log_wandb=False):
     rowd = OrderedDict()
-    rowd.update([('train_' + k, v) for k, v in train_metrics.items()])
-    rowd.update([('eval_' + k, v) for k, v in eval_metrics.items()])
+    rowd.update([("train_" + k, v) for k, v in train_metrics.items()])
+    rowd.update([("eval_" + k, v) for k, v in eval_metrics.items()])
     if log_wandb:
         wandb.log(rowd)

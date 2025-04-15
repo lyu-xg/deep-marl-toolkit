@@ -10,7 +10,7 @@ from gymnasium import logger, spaces
 from gymnasium.core import Env
 from gymnasium.vector.utils.spaces import batch_space
 
-__all__ = ['BaseVecEnv', 'VecEnvWrapper', 'CloudpickleWrapper']
+__all__ = ["BaseVecEnv", "VecEnvWrapper", "CloudpickleWrapper"]
 
 
 class BaseVecEnv(ABC):
@@ -118,7 +118,7 @@ class BaseVecEnv(ABC):
         Raises:
             NotImplementedError: VectorEnv does not implement function
         """
-        raise NotImplementedError('VectorEnv does not implement function')
+        raise NotImplementedError("VectorEnv does not implement function")
 
     def reset(
         self,
@@ -156,8 +156,12 @@ class BaseVecEnv(ABC):
 
     def step_wait(
         self,
-    ) -> Tuple[Union[np.ndarray, Dict[str, np.ndarray]], np.ndarray,
-               np.ndarray, List[Dict[str, Any]], ]:
+    ) -> Tuple[
+        Union[np.ndarray, Dict[str, np.ndarray]],
+        np.ndarray,
+        np.ndarray,
+        List[Dict[str, Any]],
+    ]:
         """Wait for the step taken with step_async(). Returns (obs, rews,
         dones, infos):
 
@@ -251,10 +255,10 @@ class BaseVecEnv(ABC):
             if k not in infos:
                 info_array, array_mask = self._init_info_arrays(type(info[k]))
             else:
-                info_array, array_mask = infos[k], infos[f'_{k}']
+                info_array, array_mask = infos[k], infos[f"_{k}"]
 
             info_array[env_num], array_mask[env_num] = info[k], True
-            infos[k], infos[f'_{k}'] = info_array, array_mask
+            infos[k], infos[f"_{k}"] = info_array, array_mask
         return infos
 
     def _init_info_arrays(self, dtype: type) -> Tuple[np.ndarray, np.ndarray]:
@@ -316,14 +320,12 @@ class BaseVecEnv(ABC):
         if seed is None:
             # To ensure that subprocesses have different seeds,
             # we still populate the seed variable when no argument is passed
-            seed = int(
-                np.random.randint(0, np.iinfo(np.uint32).max, dtype=np.uint32))
+            seed = int(np.random.randint(0, np.iinfo(np.uint32).max, dtype=np.uint32))
 
         self.seeds = [seed + idx for idx in range(self.num_envs)]
         return self.seeds
 
-    def set_options(self,
-                    options: Optional[Union[List[Dict], Dict]] = None) -> None:
+    def set_options(self, options: Optional[Union[List[Dict], Dict]] = None) -> None:
         """
         Set environment options for all environments.
         If a dict is passed instead of a list, the same options will be used for all environments.
@@ -339,8 +341,7 @@ class BaseVecEnv(ABC):
         else:
             self.options = deepcopy(options)
 
-    def getattr_depth_check(self, name: str,
-                            already_found: bool) -> Optional[str]:
+    def getattr_depth_check(self, name: str, already_found: bool) -> Optional[str]:
         """Check if an attribute reference is being hidden in a recursive call
         to __getattr__
 
@@ -349,13 +350,13 @@ class BaseVecEnv(ABC):
         :return: name of module whose attribute is being shadowed, if any.
         """
         if hasattr(self, name) and already_found:
-            return f'{type(self).__module__}.{type(self).__name__}'
+            return f"{type(self).__module__}.{type(self).__name__}"
         else:
             return None
 
     def __del__(self):
         """Closes the vector environment."""
-        if not getattr(self, 'closed', True):
+        if not getattr(self, "closed", True):
             self.close()
 
     def __repr__(self) -> str:
@@ -365,9 +366,9 @@ class BaseVecEnv(ABC):
             A string containing the class name, number of environments and environment spec id
         """
         if self.spec is None:
-            return f'{self.__class__.__name__}({self.num_envs})'
+            return f"{self.__class__.__name__}({self.num_envs})"
         else:
-            return f'{self.__class__.__name__}({self.spec.id}, {self.num_envs})'
+            return f"{self.__class__.__name__}({self.spec.id}, {self.num_envs})"
 
 
 class VecEnvWrapper(BaseVecEnv):
@@ -426,8 +427,7 @@ class VecEnvWrapper(BaseVecEnv):
     def seed(self, seed: Optional[int] = None) -> Sequence[Union[None, int]]:
         return self.vec_env.seed(seed)
 
-    def set_options(self,
-                    options: Optional[Union[List[Dict], Dict]] = None) -> None:
+    def set_options(self, options: Optional[Union[List[Dict], Dict]] = None) -> None:
         return self.vec_env.set_options(options)
 
     def get_attr(self, name: str) -> List[Any]:
@@ -450,17 +450,16 @@ class VecEnvWrapper(BaseVecEnv):
         return self.vec_env.num_envs
 
     def __getattr__(self, name):
-        if name.startswith('_'):
-            raise AttributeError(
-                f"attempted to get missing private attribute '{name}'")
+        if name.startswith("_"):
+            raise AttributeError(f"attempted to get missing private attribute '{name}'")
         logger.warn(
-            f'env.{name} to get variables from other wrappers is deprecated and will be removed in v1.0, '
-            f'to get this variable you can do `env.unwrapped.{name}` for environment variables.'
+            f"env.{name} to get variables from other wrappers is deprecated and will be removed in v1.0, "
+            f"to get this variable you can do `env.unwrapped.{name}` for environment variables."
         )
         return getattr(self.env, name)
 
     def __repr__(self):
-        return f'<{self.__class__.__name__}, {self.env}>'
+        return f"<{self.__class__.__name__}, {self.env}>"
 
     def __del__(self):
         self.env.__del__()

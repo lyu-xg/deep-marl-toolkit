@@ -1,9 +1,10 @@
-'''
+"""
 Author: jianzhnie
 LastEditors: jianzhnie
 Description: RLToolKit is a flexible and high-efficient reinforcement learning framework.
 Copyright (c) 2022 by jianzhnie@126.com, All Rights Reserved.
-'''
+"""
+
 import torch
 import torch.nn as nn
 import torch.nn.functional as F
@@ -34,8 +35,7 @@ class QMixerModel(nn.Module):
         self.state_dim = state_dim
         self.mixing_embed_dim = mixing_embed_dim
         if hypernet_layers == 1:
-            self.hyper_w_1 = nn.Linear(state_dim,
-                                       mixing_embed_dim * num_agents)
+            self.hyper_w_1 = nn.Linear(state_dim, mixing_embed_dim * num_agents)
             self.hyper_w_2 = nn.Linear(state_dim, mixing_embed_dim)
         elif hypernet_layers == 2:
             self.hyper_w_1 = nn.Sequential(
@@ -105,8 +105,9 @@ class QMixerModel(nn.Module):
 
 class QMixerCentralFF(nn.Module):
 
-    def __init__(self, num_agents, state_dim, central_mixing_embed_dim,
-                 central_action_embed):
+    def __init__(
+        self, num_agents, state_dim, central_mixing_embed_dim, central_action_embed
+    ):
         super(QMixerCentralFF, self).__init__()
 
         self.num_agents = num_agents
@@ -121,7 +122,9 @@ class QMixerCentralFF(nn.Module):
             nn.Linear(central_mixing_embed_dim, central_mixing_embed_dim),
             nn.ReLU(inplace=True),
             nn.Linear(central_mixing_embed_dim, central_mixing_embed_dim),
-            nn.ReLU(inplace=True), nn.Linear(central_mixing_embed_dim, 1))
+            nn.ReLU(inplace=True),
+            nn.Linear(central_mixing_embed_dim, 1),
+        )
 
         # V(s) instead of a bias for the last layers
         self.vnet = nn.Sequential(
@@ -133,8 +136,7 @@ class QMixerCentralFF(nn.Module):
     def forward(self, agent_qs, states):
         bs = agent_qs.size(0)
         states = states.reshape(-1, self.state_dim)
-        agent_qs = agent_qs.reshape(
-            -1, self.num_agents * self.central_action_embed)
+        agent_qs = agent_qs.reshape(-1, self.num_agents * self.central_action_embed)
 
         inputs = torch.cat([states, agent_qs], dim=1)
 

@@ -9,7 +9,7 @@ ROCK = 0
 PAPER = 1
 SCISSORS = 2
 NONE = 3
-MOVES = ['ROCK', 'PAPER', 'SCISSORS', 'None']
+MOVES = ["ROCK", "PAPER", "SCISSORS", "None"]
 NUM_ITERS = 100
 REWARD_MAP = {
     (ROCK, ROCK): (0, 0),
@@ -30,10 +30,10 @@ def env(render_mode=None):
     You can find full documentation for these methods elsewhere in the
     developer documentation.
     """
-    internal_render_mode = render_mode if render_mode != 'ansi' else 'human'
+    internal_render_mode = render_mode if render_mode != "ansi" else "human"
     env = raw_env(render_mode=internal_render_mode)
     # This wrapper is only for environments which print results to the terminal
-    if render_mode == 'ansi':
+    if render_mode == "ansi":
         env = wrappers.CaptureStdoutWrapper(env)
     # this wrapper helps error handling for discrete action spaces
     env = wrappers.AssertOutOfBoundsWrapper(env)
@@ -52,7 +52,7 @@ def raw_env(render_mode=None):
 
 
 class parallel_env(ParallelEnv):
-    metadata = {'render_modes': ['human'], 'name': 'rps_v2'}
+    metadata = {"render_modes": ["human"], "name": "rps_v2"}
 
     def __init__(self, render_mode=None):
         """The init method takes in environment arguments and should define the
@@ -67,11 +67,12 @@ class parallel_env(ParallelEnv):
 
         These attributes should not be changed after initialization.
         """
-        self.possible_agents = ['player_' + str(r) for r in range(2)]
+        self.possible_agents = ["player_" + str(r) for r in range(2)]
 
         # optional: a mapping between agent name and ID
         self.agent_name_mapping = dict(
-            zip(self.possible_agents, list(range(len(self.possible_agents)))))
+            zip(self.possible_agents, list(range(len(self.possible_agents))))
+        )
         self.render_mode = render_mode
 
     # Observation space should be defined here.
@@ -96,16 +97,16 @@ class parallel_env(ParallelEnv):
         """
         if self.render_mode is None:
             gymnasium.logger.warn(
-                'You are calling render method without specifying any render mode.'
+                "You are calling render method without specifying any render mode."
             )
             return
 
         if len(self.agents) == 2:
-            string = 'Current state: Agent1: {} , Agent2: {}'.format(
-                MOVES[self.state[self.agents[0]]],
-                MOVES[self.state[self.agents[1]]])
+            string = "Current state: Agent1: {} , Agent2: {}".format(
+                MOVES[self.state[self.agents[0]]], MOVES[self.state[self.agents[1]]]
+            )
         else:
-            string = 'Game over'
+            string = "Game over"
         print(string)
 
     def close(self):
@@ -147,8 +148,9 @@ class parallel_env(ParallelEnv):
 
         # rewards for all agents are placed in the rewards dictionary to be returned
         rewards = {}
-        rewards[self.agents[0]], rewards[self.agents[1]] = REWARD_MAP[(
-            actions[self.agents[0]], actions[self.agents[1]])]
+        rewards[self.agents[0]], rewards[self.agents[1]] = REWARD_MAP[
+            (actions[self.agents[0]], actions[self.agents[1]])
+        ]
 
         terminations = {agent: False for agent in self.agents}
 
@@ -170,6 +172,6 @@ class parallel_env(ParallelEnv):
         if env_truncation:
             self.agents = []
 
-        if self.render_mode == 'human':
+        if self.render_mode == "human":
             self.render()
         return observations, rewards, terminations, truncations, infos

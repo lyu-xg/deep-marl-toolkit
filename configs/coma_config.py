@@ -19,7 +19,7 @@ class ComaConfig:
         algo_name (str, optional): Name of the algorithm.
     """
 
-    model_type: str = 'coma'
+    model_type: str = "coma"
 
     def __init__(
         self,
@@ -35,7 +35,7 @@ class ComaConfig:
         clip_grad_norm: float = 10,
         learner_update_freq: int = 2,
         double_q: bool = True,
-        algo_name: str = 'coma',
+        algo_name: str = "coma",
     ) -> None:
         # Network architecture parameters
         self.fc_hidden_dim = fc_hidden_dim

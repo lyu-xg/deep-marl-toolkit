@@ -10,20 +10,20 @@ class MLPBase(nn.Module):
         self,
         input_dim: int,
         hidden_dim: int,
-        activation: str = 'relu',
+        activation: str = "relu",
         use_orthogonal: bool = False,
         use_feature_normalization: bool = False,
     ) -> None:
         super(MLPBase, self).__init__()
 
-        use_relu = 1 if activation == 'relu' else 0
+        use_relu = 1 if activation == "relu" else 0
         active_func = [nn.ReLU(), nn.Tanh()][use_relu]
         if use_orthogonal:
             init_method = nn.init.orthogonal_
         else:
             init_method = nn.init.xavier_uniform_
 
-        gain = nn.init.calculate_gain(['tanh', 'relu'][use_relu])
+        gain = nn.init.calculate_gain(["tanh", "relu"][use_relu])
         self.use_feature_normalization = use_feature_normalization
         if use_feature_normalization:
             self.feature_norm = nn.LayerNorm(input_dim)
@@ -34,10 +34,12 @@ class MLPBase(nn.Module):
                 if module.bias is not None:
                     nn.init.constant_(module.bias, 0)
 
-        self.fc1 = nn.Sequential(nn.Linear(input_dim, hidden_dim), active_func,
-                                 nn.LayerNorm(hidden_dim))
-        self.fc2 = nn.Sequential(nn.Linear(hidden_dim, hidden_dim),
-                                 active_func, nn.LayerNorm(hidden_dim))
+        self.fc1 = nn.Sequential(
+            nn.Linear(input_dim, hidden_dim), active_func, nn.LayerNorm(hidden_dim)
+        )
+        self.fc2 = nn.Sequential(
+            nn.Linear(hidden_dim, hidden_dim), active_func, nn.LayerNorm(hidden_dim)
+        )
         self.apply(init_weight)
 
     def forward(self, inputs: torch.Tensor):
@@ -72,16 +74,15 @@ class CNNBase(nn.Module):
         hidden_dim: int,
         kernel_size: int = 3,
         stride: int = 1,
-        activation: str = 'relu',
+        activation: str = "relu",
         use_orthogonal: bool = False,
     ) -> None:
         super(CNNBase, self).__init__()
 
-        use_relu = 1 if activation == 'relu' else 0
+        use_relu = 1 if activation == "relu" else 0
         active_func = [nn.ReLU(), nn.Tanh()][use_relu]
-        init_method = [nn.init.xavier_uniform_,
-                       nn.init.orthogonal_][use_orthogonal]
-        gain = nn.init.calculate_gain(['tanh', 'relu'][use_relu])
+        init_method = [nn.init.xavier_uniform_, nn.init.orthogonal_][use_orthogonal]
+        gain = nn.init.calculate_gain(["tanh", "relu"][use_relu])
 
         (in_channel, width, height) = obs_shape
 
@@ -101,8 +102,10 @@ class CNNBase(nn.Module):
             active_func,
             Flatten(),
             nn.Linear(
-                hidden_dim // 2 * (width - kernel_size + stride) *
-                (height - kernel_size + stride),
+                hidden_dim
+                // 2
+                * (width - kernel_size + stride)
+                * (height - kernel_size + stride),
                 hidden_dim,
             ),
             active_func,
@@ -130,14 +133,13 @@ class RNNLayer(nn.Module):
         self.rnn_layers = rnn_layers
         self.use_orthogonal = use_orthogonal
 
-        self.rnn = nn.GRU(input_dim,
-                          rnn_hidden_dim,
-                          num_layers=rnn_layers,
-                          batch_first=True)
+        self.rnn = nn.GRU(
+            input_dim, rnn_hidden_dim, num_layers=rnn_layers, batch_first=True
+        )
         for name, param in self.rnn.named_parameters():
-            if 'bias' in name:
+            if "bias" in name:
                 nn.init.constant_(param, 0)
-            elif 'weight' in name:
+            elif "weight" in name:
                 if self.use_orthogonal:
                     nn.init.orthogonal_(param)
                 else:
@@ -160,9 +162,9 @@ class RNNLayer(nn.Module):
         Returns:
             tuple[Any, torch.Tensor]: (output, hidden_state)
         """
-        print('inputs.shape: ', inputs.shape)
-        print('hidden_state.shape: ', hidden_state.shape)
-        print('masks.shape: ', masks.shape)
+        print("inputs.shape: ", inputs.shape)
+        print("hidden_state.shape: ", hidden_state.shape)
+        print("masks.shape: ", masks.shape)
 
         if inputs.size(0) == hidden_state.size(0):
             # If the batch size is the same, we can just run the RNN
@@ -185,8 +187,7 @@ class RNNLayer(nn.Module):
             masks = masks.view(T, N)
             # Let's figure out which steps in the sequence have a zero for any agent
             # We will always assume t=0 has a zero in it as that makes the logic cleaner
-            has_zeros = (masks[1:] == 0.0).any(
-                dim=-1).nonzero().squeeze().cpu()
+            has_zeros = (masks[1:] == 0.0).any(dim=-1).nonzero().squeeze().cpu()
 
             # +1 to correct the masks[1:]
             if has_zeros.dim() == 0:
@@ -206,10 +207,11 @@ class RNNLayer(nn.Module):
                 # This is much faster
                 start_idx = has_zeros[i]
                 end_idx = has_zeros[i + 1]
-                temp = (hidden_state * masks[start_idx].view(1, -1, 1).repeat(
-                    self.rnn_layers, 1, 1)).contiguous()
-                rnn_scores, hidden_state = self.rnn(inputs[start_idx:end_idx],
-                                                    temp)
+                temp = (
+                    hidden_state
+                    * masks[start_idx].view(1, -1, 1).repeat(self.rnn_layers, 1, 1)
+                ).contiguous()
+                rnn_scores, hidden_state = self.rnn(inputs[start_idx:end_idx], temp)
                 outputs.append(rnn_scores)
 
             # assert len(outputs) == T

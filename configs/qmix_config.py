@@ -21,7 +21,7 @@ class QMixConfig:
         algo_name (str, optional): Name of the algorithm.
     """
 
-    model_type: str = 'qmix'
+    model_type: str = "qmix"
 
     def __init__(
         self,
@@ -40,7 +40,7 @@ class QMixConfig:
         mixing_embed_dim: int = 32,
         learner_update_freq: int = 3,
         double_q: bool = True,
-        algo_name: str = 'qmix',
+        algo_name: str = "qmix",
     ) -> None:
         # Network architecture parameters
         self.fc_hidden_dim = fc_hidden_dim

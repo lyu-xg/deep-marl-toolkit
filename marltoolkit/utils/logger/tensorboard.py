@@ -34,8 +34,7 @@ class TensorboardLogger(BaseLogger):
         save_interval: int = 1,
         write_flush: bool = True,
     ) -> None:
-        super().__init__(train_interval, test_interval, update_interval,
-                         info_interval)
+        super().__init__(train_interval, test_interval, update_interval, info_interval)
         self.save_interval = save_interval
         self.write_flush = write_flush
         self.last_save_step = -1
@@ -57,24 +56,27 @@ class TensorboardLogger(BaseLogger):
         if save_checkpoint_fn and epoch - self.last_save_step >= self.save_interval:
             self.last_save_step = epoch
             save_checkpoint_fn(epoch, env_step, gradient_step)
-            self.write('save/epoch', epoch, {'save/epoch': epoch})
-            self.write('save/env_step', env_step, {'save/env_step': env_step})
-            self.write('save/gradient_step', gradient_step,
-                       {'save/gradient_step': gradient_step})
+            self.write("save/epoch", epoch, {"save/epoch": epoch})
+            self.write("save/env_step", env_step, {"save/env_step": env_step})
+            self.write(
+                "save/gradient_step",
+                gradient_step,
+                {"save/gradient_step": gradient_step},
+            )
 
     def restore_data(self) -> Tuple[int, int, int]:
         ea = event_accumulator.EventAccumulator(self.writer.log_dir)
         ea.Reload()
 
         try:  # epoch / gradient_step
-            epoch = ea.scalars.Items('save/epoch')[-1].step
+            epoch = ea.scalars.Items("save/epoch")[-1].step
             self.last_save_step = self.last_log_test_step = epoch
-            gradient_step = ea.scalars.Items('save/gradient_step')[-1].step
+            gradient_step = ea.scalars.Items("save/gradient_step")[-1].step
             self.last_log_update_step = gradient_step
         except KeyError:
             epoch, gradient_step = 0, 0
         try:  # offline trainer doesn't have env_step
-            env_step = ea.scalars.Items('save/env_step')[-1].step
+            env_step = ea.scalars.Items("save/env_step")[-1].step
             self.last_log_train_step = env_step
         except KeyError:
             env_step = 0

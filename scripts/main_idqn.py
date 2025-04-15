@@ -10,17 +10,21 @@ import torch
 from smac.env import StarCraft2Env
 from torch.utils.tensorboard import SummaryWriter
 
-sys.path.append('../')
+sys.path.append("../")
 from configs.arguments import get_common_args
 from configs.idqn_config import IDQNConfig
 from marltoolkit.agents import IDQNAgent
 from marltoolkit.data import ReplayBuffer
 from marltoolkit.envs.smacv1.env_wrapper import SC2EnvWrapper
 from marltoolkit.modules.actors import RNNActorModel
-from marltoolkit.runners.episode_runner import (run_eval_episode,
-                                                run_train_episode)
-from marltoolkit.utils import (ProgressBar, TensorboardLogger, WandbLogger,
-                               get_outdir, get_root_logger)
+from marltoolkit.runners.episode_runner import run_eval_episode, run_train_episode
+from marltoolkit.utils import (
+    ProgressBar,
+    TensorboardLogger,
+    WandbLogger,
+    get_outdir,
+    get_root_logger,
+)
 
 
 def main():
@@ -34,8 +38,11 @@ def main():
     idn_config = IDQNConfig()
     common_args = get_common_args()
     args = argparse.Namespace(**vars(common_args), **vars(idn_config))
-    device = (torch.device('cuda') if torch.cuda.is_available() and args.cuda
-              else torch.device('cpu'))
+    device = (
+        torch.device("cuda")
+        if torch.cuda.is_available() and args.cuda
+        else torch.device("cpu")
+    )
 
     env = StarCraft2Env(map_name=args.scenario, difficulty=args.difficulty)
 
@@ -48,17 +55,17 @@ def main():
     args.device = device
 
     # init the logger before other steps
-    timestamp = time.strftime('%Y%m%d_%H%M%S', time.localtime())
+    timestamp = time.strftime("%Y%m%d_%H%M%S", time.localtime())
     # log
-    log_name = os.path.join(args.project, args.scenario, args.algo_name,
-                            timestamp).replace(os.path.sep, '_')
-    log_path = os.path.join(args.log_dir, args.project, args.scenario,
-                            args.algo_name)
-    tensorboard_log_path = get_outdir(log_path, 'tensorboard_log_dir')
-    log_file = os.path.join(log_path, log_name + '.log')
-    text_logger = get_root_logger(log_file=log_file, log_level='INFO')
+    log_name = os.path.join(
+        args.project, args.scenario, args.algo_name, timestamp
+    ).replace(os.path.sep, "_")
+    log_path = os.path.join(args.log_dir, args.project, args.scenario, args.algo_name)
+    tensorboard_log_path = get_outdir(log_path, "tensorboard_log_dir")
+    log_file = os.path.join(log_path, log_name + ".log")
+    text_logger = get_root_logger(log_file=log_file, log_level="INFO")
 
-    if args.logger == 'wandb':
+    if args.logger == "wandb":
         logger = WandbLogger(
             train_interval=args.train_log_interval,
             test_interval=args.test_log_interval,
@@ -69,8 +76,8 @@ def main():
             config=args,
         )
     writer = SummaryWriter(tensorboard_log_path)
-    writer.add_text('args', str(args))
-    if args.logger == 'tensorboard':
+    writer.add_text("args", str(args))
+    if args.logger == "tensorboard":
         logger = TensorboardLogger(writer)
     else:  # wandb
         logger.load(writer)
@@ -129,42 +136,47 @@ def main():
 
         # learning rate decay
         marl_agent.learning_rate = max(
-            marl_agent.lr_scheduler.step(episode_step),
-            marl_agent.min_learning_rate)
+            marl_agent.lr_scheduler.step(episode_step), marl_agent.min_learning_rate
+        )
 
         train_results = {
-            'env_step': episode_step,
-            'rewards': episode_reward,
-            'win_rate': is_win,
-            'mean_loss': mean_loss,
-            'mean_td_error': mean_td_error,
-            'exploration': marl_agent.exploration,
-            'learning_rate': marl_agent.learning_rate,
-            'replay_buffer_size': rpm.size(),
-            'target_update_count': marl_agent.target_update_count,
+            "env_step": episode_step,
+            "rewards": episode_reward,
+            "win_rate": is_win,
+            "mean_loss": mean_loss,
+            "mean_td_error": mean_td_error,
+            "exploration": marl_agent.exploration,
+            "learning_rate": marl_agent.learning_rate,
+            "replay_buffer_size": rpm.size(),
+            "target_update_count": marl_agent.target_update_count,
         }
         if episode_cnt % args.train_log_interval == 0:
             text_logger.info(
-                '[Train], episode: {}, train_win_rate: {:.2f}, train_reward: {:.2f}'
-                .format(episode_cnt, is_win, episode_reward))
+                "[Train], episode: {}, train_win_rate: {:.2f}, train_reward: {:.2f}".format(
+                    episode_cnt, is_win, episode_reward
+                )
+            )
             logger.log_train_data(train_results, steps_cnt)
 
         if episode_cnt % args.test_log_interval == 0:
             eval_rewards, eval_steps, eval_win_rate = run_eval_episode(
-                env, marl_agent, num_eval_episodes=5)
+                env, marl_agent, num_eval_episodes=5
+            )
             text_logger.info(
-                '[Eval], episode: {}, eval_win_rate: {:.2f}, eval_rewards: {:.2f}'
-                .format(episode_cnt, eval_win_rate, eval_rewards))
+                "[Eval], episode: {}, eval_win_rate: {:.2f}, eval_rewards: {:.2f}".format(
+                    episode_cnt, eval_win_rate, eval_rewards
+                )
+            )
 
             test_results = {
-                'env_step': eval_steps,
-                'rewards': eval_rewards,
-                'win_rate': eval_win_rate,
+                "env_step": eval_steps,
+                "rewards": eval_rewards,
+                "win_rate": eval_win_rate,
             }
             logger.log_test_data(test_results, steps_cnt)
 
         progress_bar.update(episode_step)
 
 
-if __name__ == '__main__':
+if __name__ == "__main__":
     main()

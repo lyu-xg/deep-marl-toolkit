@@ -32,7 +32,7 @@ class BaseBuffer(ABC):
         action_shape: Union[int, Tuple],
         reward_shape: Union[int, Tuple],
         done_shape: Union[int, Tuple],
-        device: Union[torch.device, str] = 'cpu',
+        device: Union[torch.device, str] = "cpu",
         **kwargs,
     ) -> None:
         super().__init__()

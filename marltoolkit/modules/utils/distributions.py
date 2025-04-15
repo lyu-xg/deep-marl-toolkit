@@ -13,8 +13,13 @@ class FixedCategorical(Categorical):
         return super().sample().unsqueeze(-1)
 
     def log_probs(self, actions):
-        return (super().log_prob(actions.squeeze(-1)).view(
-            actions.size(0), -1).sum(-1).unsqueeze(-1))
+        return (
+            super()
+            .log_prob(actions.squeeze(-1))
+            .view(actions.size(0), -1)
+            .sum(-1)
+            .unsqueeze(-1)
+        )
 
     def mode(self):
         return self.probs.argmax(dim=-1, keepdim=True)
@@ -37,8 +42,7 @@ class FixedNormal(Normal):
 class FixedBernoulli(Bernoulli):
 
     def log_probs(self, actions):
-        return super.log_prob(actions).view(actions.size(0),
-                                            -1).sum(-1).unsqueeze(-1)
+        return super.log_prob(actions).view(actions.size(0), -1).sum(-1).unsqueeze(-1)
 
     def entropy(self):
         return super().entropy().sum(-1)
@@ -49,14 +53,9 @@ class FixedBernoulli(Bernoulli):
 
 class CustomCategorical(nn.Module):
 
-    def __init__(self,
-                 num_inputs,
-                 num_outputs,
-                 use_orthogonal=True,
-                 gain=0.01):
+    def __init__(self, num_inputs, num_outputs, use_orthogonal=True, gain=0.01):
         super(CustomCategorical, self).__init__()
-        init_method = [nn.init.xavier_uniform_,
-                       nn.init.orthogonal_][use_orthogonal]
+        init_method = [nn.init.xavier_uniform_, nn.init.orthogonal_][use_orthogonal]
 
         def init_weight(module: nn.Module) -> None:
             if isinstance(module, nn.Linear):
@@ -76,15 +75,10 @@ class CustomCategorical(nn.Module):
 
 class DiagGaussian(nn.Module):
 
-    def __init__(self,
-                 num_inputs,
-                 num_outputs,
-                 use_orthogonal=True,
-                 gain=0.01):
+    def __init__(self, num_inputs, num_outputs, use_orthogonal=True, gain=0.01):
         super(DiagGaussian, self).__init__()
 
-        init_method = [nn.init.xavier_uniform_,
-                       nn.init.orthogonal_][use_orthogonal]
+        init_method = [nn.init.xavier_uniform_, nn.init.orthogonal_][use_orthogonal]
 
         def init_weight(module: nn.Module) -> None:
             if isinstance(module, nn.Linear):
@@ -110,14 +104,9 @@ class DiagGaussian(nn.Module):
 
 class CustomBernoulli(nn.Module):
 
-    def __init__(self,
-                 num_inputs,
-                 num_outputs,
-                 use_orthogonal=True,
-                 gain=0.01):
+    def __init__(self, num_inputs, num_outputs, use_orthogonal=True, gain=0.01):
         super(CustomBernoulli, self).__init__()
-        init_method = [nn.init.xavier_uniform_,
-                       nn.init.orthogonal_][use_orthogonal]
+        init_method = [nn.init.xavier_uniform_, nn.init.orthogonal_][use_orthogonal]
 
         def init_weight(module: nn.Module) -> None:
             if isinstance(module, nn.Linear):

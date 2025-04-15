@@ -17,28 +17,27 @@ class PettingZooEnv(AECEnv, ABC):
         for i, agent_id in enumerate(self.agents):
             self.agent_idx[agent_id] = i
 
-        self.action_spaces = {
-            k: self.env.action_space(k)
-            for k in self.env.agents
-        }
+        self.action_spaces = {k: self.env.action_space(k) for k in self.env.agents}
         self.observation_spaces = {
-            k: self.env.observation_space(k)
-            for k in self.env.agents
+            k: self.env.observation_space(k) for k in self.env.agents
         }
         assert all(
-            self.observation_space(agent) == self.env.observation_space(
-                self.agents[0])
-            for agent in self.agents), (
-                'Observation spaces for all agents must be identical. Perhaps '
-                "SuperSuit's pad_observations wrapper can help (useage: "
-                '`supersuit.aec_wrappers.pad_observations(env)`')
+            self.observation_space(agent) == self.env.observation_space(self.agents[0])
+            for agent in self.agents
+        ), (
+            "Observation spaces for all agents must be identical. Perhaps "
+            "SuperSuit's pad_observations wrapper can help (useage: "
+            "`supersuit.aec_wrappers.pad_observations(env)`"
+        )
 
         assert all(
             self.action_space(agent) == self.env.action_space(self.agents[0])
-            for agent in self.agents), (
-                'Action spaces for all agents must be identical. Perhaps '
-                "SuperSuit's pad_action_space wrapper can help (useage: "
-                '`supersuit.aec_wrappers.pad_action_space(env)`')
+            for agent in self.agents
+        ), (
+            "Action spaces for all agents must be identical. Perhaps "
+            "SuperSuit's pad_action_space wrapper can help (useage: "
+            "`supersuit.aec_wrappers.pad_action_space(env)`"
+        )
         try:
             self.state_space = self.env.state_space
         except Exception:
@@ -53,31 +52,25 @@ class PettingZooEnv(AECEnv, ABC):
 
         observation, reward, terminated, truncated, info = self.env.last(self)
 
-        if isinstance(observation, dict) and 'action_mask' in observation:
+        if isinstance(observation, dict) and "action_mask" in observation:
             observation_dict = {
-                'agent_id':
-                self.env.agent_selection,
-                'obs':
-                observation['observation'],
-                'mask': [
-                    True if obm == 1 else False
-                    for obm in observation['action_mask']
+                "agent_id": self.env.agent_selection,
+                "obs": observation["observation"],
+                "mask": [
+                    True if obm == 1 else False for obm in observation["action_mask"]
                 ],
             }
         else:
             if isinstance(self.action_space, spaces.Discrete):
                 observation_dict = {
-                    'agent_id':
-                    self.env.agent_selection,
-                    'obs':
-                    observation,
-                    'mask':
-                    [True] * self.env.action_space(self.env.agent_selection).n,
+                    "agent_id": self.env.agent_selection,
+                    "obs": observation,
+                    "mask": [True] * self.env.action_space(self.env.agent_selection).n,
                 }
             else:
                 observation_dict = {
-                    'agent_id': self.env.agent_selection,
-                    'obs': observation,
+                    "agent_id": self.env.agent_selection,
+                    "obs": observation,
                 }
 
         return observation_dict, info
@@ -87,32 +80,23 @@ class PettingZooEnv(AECEnv, ABC):
 
         observation, reward, term, trunc, info = self.env.last()
 
-        if isinstance(observation, dict) and 'action_mask' in observation:
+        if isinstance(observation, dict) and "action_mask" in observation:
             obs = {
-                'agent_id':
-                self.env.agent_selection,
-                'obs':
-                observation['observation'],
-                'mask': [
-                    True if obm == 1 else False
-                    for obm in observation['action_mask']
+                "agent_id": self.env.agent_selection,
+                "obs": observation["observation"],
+                "mask": [
+                    True if obm == 1 else False for obm in observation["action_mask"]
                 ],
             }
         else:
             if isinstance(self.action_space, spaces.Discrete):
                 obs = {
-                    'agent_id':
-                    self.env.agent_selection,
-                    'obs':
-                    observation,
-                    'mask':
-                    [True] * self.env.action_space(self.env.agent_selection).n,
+                    "agent_id": self.env.agent_selection,
+                    "obs": observation,
+                    "mask": [True] * self.env.action_space(self.env.agent_selection).n,
                 }
             else:
-                obs = {
-                    'agent_id': self.env.agent_selection,
-                    'obs': observation
-                }
+                obs = {"agent_id": self.env.agent_selection, "obs": observation}
 
         for agent_id, reward in self.env.rewards.items():
             self.rewards[self.agent_idx[agent_id]] = reward

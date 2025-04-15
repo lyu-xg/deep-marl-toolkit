@@ -27,17 +27,16 @@ def run_train_episode(
     for step in range(args.episode_limit):
         available_actions = env.get_available_actions()
         actions = agent.sample(obs=obs, available_actions=available_actions)
-        next_obs, next_state, reward, terminated, truncated, info = env.step(
-            actions)
+        next_obs, next_state, reward, terminated, truncated, info = env.step(actions)
         done = terminated or truncated
         transitions = {
-            'obs': obs,
-            'state': state,
-            'actions': actions,
-            'available_actions': available_actions,
-            'rewards': reward,
-            'dones': done,
-            'filled': False,
+            "obs": obs,
+            "state": state,
+            "actions": actions,
+            "available_actions": available_actions,
+            "rewards": reward,
+            "dones": done,
+            "filled": False,
         }
 
         rpm.store_transitions(transitions)
@@ -63,9 +62,9 @@ def run_train_episode(
 
     train_res_dict = avg_val_from_list_of_dicts(train_res_lst)
 
-    train_res_dict['episode_reward'] = episode_reward
-    train_res_dict['episode_step'] = episode_step
-    train_res_dict['win_rate'] = is_win
+    train_res_dict["episode_reward"] = episode_reward
+    train_res_dict["episode_step"] = episode_step
+    train_res_dict["win_rate"] = is_win
     return train_res_dict
 
 
@@ -89,17 +88,20 @@ def run_eval_episode(
                 available_actions=available_actions,
             )
             next_obs, next_state, reward, terminated, truncated, info = env.step(
-                actions)
+                actions
+            )
             done = terminated or truncated
             obs = next_obs
             episode_step += 1
             episode_reward += reward
 
         is_win = env.win_counted
-        eval_res_list.append({
-            'episode_reward': episode_reward,
-            'episode_step': episode_step,
-            'win_rate': is_win,
-        })
+        eval_res_list.append(
+            {
+                "episode_reward": episode_reward,
+                "episode_step": episode_step,
+                "win_rate": is_win,
+            }
+        )
     eval_res_dict = avg_val_from_list_of_dicts(eval_res_list)
     return eval_res_dict

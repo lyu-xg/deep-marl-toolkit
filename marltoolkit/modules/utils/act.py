@@ -3,9 +3,11 @@ import argparse
 import torch
 import torch.nn as nn
 
-from marltoolkit.modules.utils.distributions import (CustomBernoulli,
-                                                     CustomCategorical,
-                                                     DiagGaussian)
+from marltoolkit.modules.utils.distributions import (
+    CustomBernoulli,
+    CustomCategorical,
+    DiagGaussian,
+)
 
 
 class ACTLayer(nn.Module):
@@ -25,20 +27,23 @@ class ACTLayer(nn.Module):
         action_space = args.action_space
         self.action_type = args.action_space.__class__.__name__
 
-        if action_space.__class__.__name__ == 'Discrete':
+        if action_space.__class__.__name__ == "Discrete":
             action_dim = action_space.n
-            self.action_out = CustomCategorical(args.hidden_size, action_dim,
-                                                args.use_orthogonal, args.gain)
-        elif action_space.__class__.__name__ == 'Box':
+            self.action_out = CustomCategorical(
+                args.hidden_size, action_dim, args.use_orthogonal, args.gain
+            )
+        elif action_space.__class__.__name__ == "Box":
             self.mujoco_box = True
             action_dim = action_space.shape[0]
-            self.action_out = DiagGaussian(args.input_dim, action_dim,
-                                           args.use_orthogonal, args.gain)
-        elif action_space.__class__.__name__ == 'MultiBinary':
+            self.action_out = DiagGaussian(
+                args.input_dim, action_dim, args.use_orthogonal, args.gain
+            )
+        elif action_space.__class__.__name__ == "MultiBinary":
             action_dim = action_space.shape[0]
-            self.action_out = CustomBernoulli(args.input_dim, action_dim,
-                                              args.use_orthogonal, args.gain)
-        elif action_space.__class__.__name__ == 'MultiDiscrete':
+            self.action_out = CustomBernoulli(
+                args.input_dim, action_dim, args.use_orthogonal, args.gain
+            )
+        elif action_space.__class__.__name__ == "MultiDiscrete":
             self.multi_discrete = True
             action_dims = action_space.high - action_space.low + 1
             self.action_outs = []
@@ -49,26 +54,29 @@ class ACTLayer(nn.Module):
                         action_dim,
                         args.use_orthogonal,
                         args.gain,
-                    ))
+                    )
+                )
             self.action_outs = nn.ModuleList(self.action_outs)
         else:  # discrete + continous
             self.mixed_action = True
             continous_dim = action_space[0].shape[0]
             discrete_dim = action_space[1].n
-            self.action_outs = nn.ModuleList([
-                DiagGaussian(
-                    args.input_dim,
-                    continous_dim,
-                    args.use_orthogonal,
-                    args.gain,
-                ),
-                CustomCategorical(
-                    args.input_dim,
-                    discrete_dim,
-                    args.use_orthogonal,
-                    args.gain,
-                ),
-            ])
+            self.action_outs = nn.ModuleList(
+                [
+                    DiagGaussian(
+                        args.input_dim,
+                        continous_dim,
+                        args.use_orthogonal,
+                        args.gain,
+                    ),
+                    CustomCategorical(
+                        args.input_dim,
+                        discrete_dim,
+                        args.use_orthogonal,
+                        args.gain,
+                    ),
+                ]
+            )
 
     def forward(
         self,
@@ -91,24 +99,22 @@ class ACTLayer(nn.Module):
             action_log_probs = []
             for action_out in self.action_outs:
                 action_logit = action_out(inputs)
-                action = action_logit.mode(
-                ) if deterministic else action_logit.sample()
+                action = action_logit.mode() if deterministic else action_logit.sample()
                 action_log_prob = action_logit.log_probs(action)
                 actions.append(action.float())
                 action_log_probs.append(action_log_prob)
 
             actions = torch.cat(actions, -1)
-            action_log_probs = torch.sum(torch.cat(action_log_probs, -1),
-                                         -1,
-                                         keepdim=True)
+            action_log_probs = torch.sum(
+                torch.cat(action_log_probs, -1), -1, keepdim=True
+            )
 
         elif self.multi_discrete:
             actions = []
             action_log_probs = []
             for action_out in self.action_outs:
                 action_logit = action_out(inputs)
-                action = action_logit.mode(
-                ) if deterministic else action_logit.sample()
+                action = action_logit.mode() if deterministic else action_logit.sample()
                 action_log_prob = action_logit.log_probs(action)
                 actions.append(action)
                 action_log_probs.append(action_log_prob)
@@ -118,21 +124,17 @@ class ACTLayer(nn.Module):
 
         elif self.mujoco_box:
             action_logits = self.action_out(inputs)
-            actions = action_logits.mode(
-            ) if deterministic else action_logits.sample()
+            actions = action_logits.mode() if deterministic else action_logits.sample()
             action_log_probs = action_logits.log_probs(actions)
 
         else:
             action_logits = self.action_out(inputs, available_actions)
-            actions = action_logits.mode(
-            ) if deterministic else action_logits.sample()
+            actions = action_logits.mode() if deterministic else action_logits.sample()
             action_log_probs = action_logits.log_probs(actions)
 
         return actions, action_log_probs
 
-    def get_probs(self,
-                  inputs: torch.Tensor,
-                  available_actions: torch.Tensor = None):
+    def get_probs(self, inputs: torch.Tensor, available_actions: torch.Tensor = None):
         """Compute action probabilities from inputs.
 
         :param inputs: (torch.Tensor) input to network.
@@ -182,21 +184,22 @@ class ACTLayer(nn.Module):
                 action_logit = action_out(inputs)
                 action_log_probs.append(action_logit.log_probs(act))
                 if active_masks is not None:
-                    if len(action_logit.entropy().shape) == len(
-                            active_masks.shape):
+                    if len(action_logit.entropy().shape) == len(active_masks.shape):
                         dist_entropy.append(
-                            (action_logit.entropy() * active_masks).sum() /
-                            active_masks.sum())
+                            (action_logit.entropy() * active_masks).sum()
+                            / active_masks.sum()
+                        )
                     else:
-                        dist_entropy.append((action_logit.entropy() *
-                                             active_masks.squeeze(-1)).sum() /
-                                            active_masks.sum())
+                        dist_entropy.append(
+                            (action_logit.entropy() * active_masks.squeeze(-1)).sum()
+                            / active_masks.sum()
+                        )
                 else:
                     dist_entropy.append(action_logit.entropy().mean())
 
-            action_log_probs = torch.sum(torch.cat(action_log_probs, -1),
-                                         -1,
-                                         keepdim=True)
+            action_log_probs = torch.sum(
+                torch.cat(action_log_probs, -1), -1, keepdim=True
+            )
             dist_entropy = dist_entropy[0] / 2.0 + dist_entropy[1] / 0.98
 
         elif self.multi_discrete:
@@ -208,8 +211,9 @@ class ACTLayer(nn.Module):
                 action_log_probs.append(action_logit.log_probs(act))
                 if active_masks is not None:
                     dist_entropy.append(
-                        (action_logit.entropy() *
-                         active_masks.squeeze(-1)).sum() / active_masks.sum())
+                        (action_logit.entropy() * active_masks.squeeze(-1)).sum()
+                        / active_masks.sum()
+                    )
                 else:
                     dist_entropy.append(action_logit.entropy().mean())
 
@@ -221,8 +225,8 @@ class ACTLayer(nn.Module):
             action_log_probs = action_logits.log_probs(action)
             if active_masks is not None:
                 dist_entropy = (
-                    action_logits.entropy() *
-                    active_masks.squeeze(-1)).sum() / active_masks.sum()
+                    action_logits.entropy() * active_masks.squeeze(-1)
+                ).sum() / active_masks.sum()
             else:
                 dist_entropy = action_logits.entropy().mean()
 
@@ -231,8 +235,8 @@ class ACTLayer(nn.Module):
             action_log_probs = action_logits.log_probs(action)
             if active_masks is not None:
                 dist_entropy = (
-                    action_logits.entropy() *
-                    active_masks.squeeze(-1)).sum() / active_masks.sum()
+                    action_logits.entropy() * active_masks.squeeze(-1)
+                ).sum() / active_masks.sum()
             else:
                 dist_entropy = action_logits.entropy().mean()
 
@@ -274,8 +278,9 @@ class ACTLayer(nn.Module):
                 probs_collector.append(action_logit.logits)
                 if active_masks is not None:
                     dist_entropy.append(
-                        (action_logit.entropy() *
-                         active_masks.squeeze(-1)).sum() / active_masks.sum())
+                        (action_logit.entropy() * active_masks.squeeze(-1)).sum()
+                        / active_masks.sum()
+                    )
                 else:
                     dist_entropy.append(action_logit.entropy().mean())
             action_mu = torch.cat(mu_collector, -1)
@@ -289,18 +294,19 @@ class ACTLayer(nn.Module):
             action_mu = action_logits.mean
             action_std = action_logits.stddev
             action_log_probs = action_logits.log_probs(action)
-            if self.action_type == 'Discrete':
+            if self.action_type == "Discrete":
                 all_probs = action_logits.logits
             else:
                 all_probs = None
             if active_masks is not None:
-                if self.action_type == 'Discrete':
+                if self.action_type == "Discrete":
                     dist_entropy = (
-                        action_logits.entropy() *
-                        active_masks.squeeze(-1)).sum() / active_masks.sum()
+                        action_logits.entropy() * active_masks.squeeze(-1)
+                    ).sum() / active_masks.sum()
                 else:
-                    dist_entropy = (action_logits.entropy() *
-                                    active_masks).sum() / active_masks.sum()
+                    dist_entropy = (
+                        action_logits.entropy() * active_masks
+                    ).sum() / active_masks.sum()
             else:
                 dist_entropy = action_logits.entropy().mean()
 

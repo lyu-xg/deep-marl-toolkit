@@ -21,13 +21,13 @@ class MultiAgentEnv(gym.Env):
         self.num_agents = None
         self.n_actions = None
         self.episode_limit = None
-        if not hasattr(self, 'obs_space'):
+        if not hasattr(self, "obs_space"):
             self.observation_space = None
-        if not hasattr(self, 'state_space'):
+        if not hasattr(self, "state_space"):
             self.observation_space = None
-        if not hasattr(self, 'action_space'):
+        if not hasattr(self, "action_space"):
             self.action_space = None
-        if not hasattr(self, '_agent_ids'):
+        if not hasattr(self, "_agent_ids"):
             self._agent_ids = set()
 
     def step(self, actions):
@@ -88,10 +88,10 @@ class MultiAgentEnv(gym.Env):
 
     def get_env_info(self):
         env_info = {
-            'obs_shape': self.get_obs_size(),
-            'state_shape': self.get_state_size(),
-            'num_agents': self.num_agents,
-            'actions_shape': self.n_actions,
-            'episode_limit': self.episode_limit,
+            "obs_shape": self.get_obs_size(),
+            "state_shape": self.get_state_size(),
+            "num_agents": self.num_agents,
+            "actions_shape": self.n_actions,
+            "episode_limit": self.episode_limit,
         }
         return env_info

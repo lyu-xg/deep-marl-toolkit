@@ -1,5 +1,6 @@
 """Code Reference Tianshou https://github.com/thu-
 ml/tianshou/tree/master/tianshou/utils/logger."""
+
 from abc import ABC, abstractmethod
 from enum import Enum
 from numbers import Number
@@ -11,10 +12,10 @@ LOG_DATA_TYPE = Dict[str, Union[int, Number, np.number, np.ndarray]]
 
 
 class DataScope(Enum):
-    TRAIN = 'train'
-    TEST = 'test'
-    UPDATE = 'update'
-    INFO = 'info'
+    TRAIN = "train"
+    TEST = "test"
+    UPDATE = "update"
+    INFO = "info"
 
 
 class BaseLogger(ABC):
@@ -63,8 +64,8 @@ class BaseLogger(ABC):
         :param int step: stands for the timestep the log_data being logged.
         """
         if step - self.last_log_train_step >= self.train_interval:
-            log_data = {f'train/{k}': v for k, v in log_data.items()}
-            self.write('train/env_step', step, log_data)
+            log_data = {f"train/{k}": v for k, v in log_data.items()}
+            self.write("train/env_step", step, log_data)
             self.last_log_train_step = step
 
     def log_test_data(self, log_data: dict, step: int) -> None:
@@ -75,8 +76,8 @@ class BaseLogger(ABC):
         :param int step: stands for the timestep the log_data being logged.
         """
         if step - self.last_log_test_step >= self.test_interval:
-            log_data = {f'test/{k}': v for k, v in log_data.items()}
-            self.write('test/env_step', step, log_data)
+            log_data = {f"test/{k}": v for k, v in log_data.items()}
+            self.write("test/env_step", step, log_data)
             self.last_log_test_step = step
 
     def log_update_data(self, log_data: dict, step: int) -> None:
@@ -87,8 +88,8 @@ class BaseLogger(ABC):
         :param int step: stands for the timestep the log_data being logged.
         """
         if step - self.last_log_update_step >= self.update_interval:
-            log_data = {f'update/{k}': v for k, v in log_data.items()}
-            self.write('update/gradient_step', step, log_data)
+            log_data = {f"update/{k}": v for k, v in log_data.items()}
+            self.write("update/gradient_step", step, log_data)
             self.last_log_update_step = step
 
     def log_info_data(self, log_data: dict, step: int) -> None:
@@ -97,9 +98,9 @@ class BaseLogger(ABC):
         :param log_data: a dict containing information of data collected at the end of an epoch.
         :param step: stands for the timestep the training info is logged.
         """
-        if (step - self.last_log_info_step >= self.info_interval):
-            log_data = {f'info/{k}': v for k, v in log_data.items()}
-            self.write('info/epoch', step, log_data)
+        if step - self.last_log_info_step >= self.info_interval:
+            log_data = {f"info/{k}": v for k, v in log_data.items()}
+            self.write("info/epoch", step, log_data)
             self.last_log_info_step = step
 
     @abstractmethod

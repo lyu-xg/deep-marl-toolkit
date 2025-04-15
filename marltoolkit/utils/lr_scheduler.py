@@ -1,4 +1,4 @@
-'''
+"""
 Author: jianzhnie@126.com
 Date: 2022-09-01 15:17:32
 LastEditors: jianzhnie@126.com
@@ -6,14 +6,14 @@ LastEditTime: 2022-09-01 15:17:35
 Description:
 
 Copyright (c) 2022 by jianzhnie, All Rights Reserved.
-'''
+"""
 
 from collections import Counter
 from typing import List
 
 import six
 
-__all__ = ['PiecewiseScheduler', 'LinearDecayScheduler']
+__all__ = ["PiecewiseScheduler", "LinearDecayScheduler"]
 
 
 class PiecewiseScheduler(object):
@@ -28,8 +28,9 @@ class PiecewiseScheduler(object):
         assert len(scheduler_list) > 0
 
         for i in six.moves.range(len(scheduler_list) - 1):
-            assert scheduler_list[i][0] < scheduler_list[i + 1][0], \
-                    'step of scheduler_list should be incremental.'
+            assert (
+                scheduler_list[i][0] < scheduler_list[i + 1][0]
+            ), "step of scheduler_list should be incremental."
 
         self.scheduler_list = scheduler_list
 
@@ -90,8 +91,7 @@ class LinearDecayScheduler(object):
         assert isinstance(step_num, int) and step_num >= 1
         self.cur_step = min(self.cur_step + step_num, self.max_steps)
 
-        value = self.start_value * (1.0 -
-                                    ((self.cur_step * 1.0) / self.max_steps))
+        value = self.start_value * (1.0 - ((self.cur_step * 1.0) / self.max_steps))
 
         return value
 
@@ -99,11 +99,13 @@ class LinearDecayScheduler(object):
 class MultiStepScheduler(object):
     """step learning rate scheduler."""
 
-    def __init__(self,
-                 start_value: float,
-                 max_steps: int,
-                 milestones: List = None,
-                 decay_factor: float = 0.1):
+    def __init__(
+        self,
+        start_value: float,
+        max_steps: int,
+        milestones: List = None,
+        decay_factor: float = 0.1,
+    ):
         assert max_steps > 0
         assert isinstance(decay_factor, float)
         assert decay_factor > 0 and decay_factor < 1
@@ -120,12 +122,12 @@ class MultiStepScheduler(object):
         if self.cur_step not in self.milestones:
             return self.cur_value
         else:
-            self.cur_value *= self.decay_factor**self.milestones[self.cur_step]
+            self.cur_value *= self.decay_factor ** self.milestones[self.cur_step]
 
         return self.cur_value
 
 
-if __name__ == '__main__':
+if __name__ == "__main__":
     scheduler = MultiStepScheduler(100, 100, [50, 80], 0.5)
     for i in range(101):
         value = scheduler.step()

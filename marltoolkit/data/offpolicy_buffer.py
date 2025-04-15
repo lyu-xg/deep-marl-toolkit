@@ -11,7 +11,7 @@ except ImportError:
     psutil = None
 from marltoolkit.data.base_buffer import BaseBuffer
 
-__all__ = ['MaEpisodeData', 'OffPolicyBuffer', 'OffPolicyBufferRNN']
+__all__ = ["MaEpisodeData", "OffPolicyBuffer", "OffPolicyBufferRNN"]
 
 
 class MaEpisodeData(object):
@@ -55,7 +55,7 @@ class MaEpisodeData(object):
                 dtype=np.float32,
             ),
             actions=np.zeros(
-                (self.episode_limit, self.num_envs) + (self.num_agents, ),
+                (self.episode_limit, self.num_envs) + (self.num_agents,),
                 dtype=np.int8,
             ),
             rewards=np.zeros(
@@ -76,7 +76,7 @@ class MaEpisodeData(object):
             ),
         )
         if self.store_global_state:
-            self.episode_buffer['state'] = np.zeros(
+            self.episode_buffer["state"] = np.zeros(
                 (self.episode_limit, self.num_envs) + self.state_shape,
                 dtype=np.float32,
             )
@@ -87,14 +87,15 @@ class MaEpisodeData(object):
 
     def store_transitions(self, transitions: Dict[str, np.ndarray]):
         """Store transitions in the buffer."""
-        self.episode_buffer['obs'][self.curr_ptr] = transitions['obs']
-        self.episode_buffer['actions'][self.curr_ptr] = transitions['actions']
-        self.episode_buffer['rewards'][self.curr_ptr] = transitions['rewards']
-        self.episode_buffer['dones'][self.curr_ptr] = transitions['env_dones']
-        self.episode_buffer['available_actions'][
-            self.curr_ptr] = transitions['available_actions']
+        self.episode_buffer["obs"][self.curr_ptr] = transitions["obs"]
+        self.episode_buffer["actions"][self.curr_ptr] = transitions["actions"]
+        self.episode_buffer["rewards"][self.curr_ptr] = transitions["rewards"]
+        self.episode_buffer["dones"][self.curr_ptr] = transitions["env_dones"]
+        self.episode_buffer["available_actions"][self.curr_ptr] = transitions[
+            "available_actions"
+        ]
         if self.store_global_state:
-            self.episode_buffer['state'][self.curr_ptr] = transitions['state']
+            self.episode_buffer["state"][self.curr_ptr] = transitions["state"]
 
         self.curr_ptr = (self.curr_ptr + 1) % self.episode_limit
         self.curr_size = min(self.curr_size + 1, self.episode_limit)
@@ -132,7 +133,7 @@ class OffPolicyBuffer(BaseBuffer):
         action_shape: Union[int, Tuple],
         reward_shape: Union[int, Tuple],
         done_shape: Union[int, Tuple],
-        device: Union[torch.device, str] = 'cpu',
+        device: Union[torch.device, str] = "cpu",
         **kwargs,
     ):
         super().__init__(
@@ -174,8 +175,8 @@ class OffPolicyBuffer(BaseBuffer):
                 total_memory_usage /= 1e9
                 mem_available /= 1e9
                 warnings.warn(
-                    'This system does not have apparently enough memory to store the complete '
-                    f'replay buffer {total_memory_usage:.2f}GB > {mem_available:.2f}GB'
+                    "This system does not have apparently enough memory to store the complete "
+                    f"replay buffer {total_memory_usage:.2f}GB > {mem_available:.2f}GB"
                 )
 
     def reset(self) -> None:
@@ -201,21 +202,21 @@ class OffPolicyBuffer(BaseBuffer):
                 dtype=bool,
             ),
             rewards=np.zeros(
-                (self.max_size, self.num_envs) + self.reward_shape,
-                dtype=np.float32),
+                (self.max_size, self.num_envs) + self.reward_shape, dtype=np.float32
+            ),
             dones=np.zeros(
                 (self.max_size, self.num_envs) + self.done_shape,
                 dtype=np.bool_,
             ),
         )
         if self.store_global_state:
-            self.buffers['state'] = np.zeros(
-                (self.num_envs, self.max_size) + self.state_shape,
-                dtype=np.float32)
+            self.buffers["state"] = np.zeros(
+                (self.num_envs, self.max_size) + self.state_shape, dtype=np.float32
+            )
 
     def store(self, step_data: Dict[str, np.ndarray]) -> None:
         for k in self.buffer_keys:
-            assert k in step_data.keys(), f'{k} not in step_data'
+            assert k in step_data.keys(), f"{k} not in step_data"
             self.buffers[k][:, self.curr_ptr] = step_data[k]
         self.curr_ptr = (self.curr_ptr + 1) % self.max_size
         self.curr_size = min(self.curr_size + 1, self.max_size)
@@ -233,14 +234,13 @@ class OffPolicyBuffer(BaseBuffer):
         Returns:
             a batch of experience samples: obs, action, reward, next_obs, terminal
         """
-        assert batch_size < self.curr_size, f'Batch Size: {batch_size} is larger than the current Buffer Size:{self.curr_size}'
+        assert (
+            batch_size < self.curr_size
+        ), f"Batch Size: {batch_size} is larger than the current Buffer Size:{self.curr_size}"
         env_idx = np.random.randint(self.num_envs, size=batch_size)
         step_idx = np.random.randint(self.curr_size, size=batch_size)
 
-        batch = {
-            key: self.buffers[key][env_idx, step_idx]
-            for key in self.buffer_keys
-        }
+        batch = {key: self.buffers[key][env_idx, step_idx] for key in self.buffer_keys}
         if to_torch:
             batch = self.to_torch(batch)
         return batch
@@ -272,7 +272,7 @@ class OffPolicyBufferRNN(OffPolicyBuffer):
         action_shape: Union[int, Tuple],
         reward_shape: Union[int, Tuple],
         done_shape: Union[int, Tuple],
-        device: Union[torch.device, str] = 'cpu',
+        device: Union[torch.device, str] = "cpu",
         **kwargs,
     ):
         self.episode_limit = episode_limit
@@ -301,45 +301,37 @@ class OffPolicyBufferRNN(OffPolicyBuffer):
     def reset(self):
         self.buffers = dict(
             obs=np.zeros(
-                (self.max_size, self.episode_limit, self.num_envs) +
-                self.obs_shape,
+                (self.max_size, self.episode_limit, self.num_envs) + self.obs_shape,
                 dtype=np.float32,
             ),
             actions=np.zeros(
-                (self.max_size, self.episode_limit, self.num_envs) +
-                (self.num_agents, ),
+                (self.max_size, self.episode_limit, self.num_envs) + (self.num_agents,),
                 dtype=np.int8,
             ),
             rewards=np.zeros(
-                (self.max_size, self.episode_limit, self.num_envs) +
-                self.reward_shape,
+                (self.max_size, self.episode_limit, self.num_envs) + self.reward_shape,
                 dtype=np.float32,
             ),
             dones=np.zeros(
-                (self.max_size, self.episode_limit, self.num_envs) +
-                self.done_shape,
+                (self.max_size, self.episode_limit, self.num_envs) + self.done_shape,
                 dtype=np.bool_,
             ),
             filled=np.zeros(
-                (self.max_size, self.episode_limit, self.num_envs) +
-                self.done_shape,
+                (self.max_size, self.episode_limit, self.num_envs) + self.done_shape,
                 dtype=np.bool_,
             ),
             available_actions=np.zeros(
-                (self.max_size, self.episode_limit, self.num_envs) +
-                self.action_shape,
+                (self.max_size, self.episode_limit, self.num_envs) + self.action_shape,
                 dtype=np.int8,
             ),
         )
         if self.store_global_state:
-            self.buffers['state'] = np.zeros(
-                (self.max_size, self.episode_limit, self.num_envs) +
-                self.state_shape,
+            self.buffers["state"] = np.zeros(
+                (self.max_size, self.episode_limit, self.num_envs) + self.state_shape,
                 dtype=np.float32,
             )
 
-    def store_episodes(self,
-                       episode_buffer: Dict[str, np.ndarray] = None) -> None:
+    def store_episodes(self, episode_buffer: Dict[str, np.ndarray] = None) -> None:
         if episode_buffer is None:
             episode_buffer = self.episode_data.episode_buffer
         for key in self.buffer_keys:
@@ -360,19 +352,20 @@ class OffPolicyBufferRNN(OffPolicyBuffer):
             terminal_data (Tuple): Terminal data.
         """
         next_obs, next_state, available_actions, filled = terminal_data
-        self.episode_data.episode_buffer['obs'][epi_step,
-                                                env_idx, :] = next_obs[env_idx]
-        self.episode_data.episode_buffer['state'][
-            epi_step, env_idx, :] = next_state[env_idx]
-        self.episode_data.episode_buffer['available_actions'][
-            epi_step, env_idx, :] = (available_actions[env_idx])
-        self.episode_data.episode_buffer['filled'][:,
-                                                   env_idx] = filled[:,
-                                                                     env_idx]
+        self.episode_data.episode_buffer["obs"][epi_step, env_idx, :] = next_obs[
+            env_idx
+        ]
+        self.episode_data.episode_buffer["state"][epi_step, env_idx, :] = next_state[
+            env_idx
+        ]
+        self.episode_data.episode_buffer["available_actions"][epi_step, env_idx, :] = (
+            available_actions[env_idx]
+        )
+        self.episode_data.episode_buffer["filled"][:, env_idx] = filled[:, env_idx]
 
-    def sample(self,
-               batch_size: int = 32,
-               to_torch: bool = True) -> Dict[str, np.ndarray]:
+    def sample(
+        self, batch_size: int = 32, to_torch: bool = True
+    ) -> Dict[str, np.ndarray]:
         """sample a batch from replay memory.
 
         Args:
@@ -381,7 +374,9 @@ class OffPolicyBufferRNN(OffPolicyBuffer):
         Returns:
             a batch of experience samples: obs, action, reward, next_obs, terminal
         """
-        assert batch_size < self.curr_size, f'Batch Size: {batch_size} is larger than the current Buffer Size:{self.curr_size}'
+        assert (
+            batch_size < self.curr_size
+        ), f"Batch Size: {batch_size} is larger than the current Buffer Size:{self.curr_size}"
         step_idx = np.random.randint(self.curr_size, size=batch_size)
 
         batch = {key: self.buffers[key][step_idx] for key in self.buffer_keys}
@@ -397,7 +392,7 @@ class OffPolicyBufferRNN(OffPolicyBuffer):
         return self.curr_size
 
 
-if __name__ == '__main__':
+if __name__ == "__main__":
 
     x = [1, 2]
     y = [2, 3]

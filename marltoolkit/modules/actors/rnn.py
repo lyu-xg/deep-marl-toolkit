@@ -21,8 +21,9 @@ class RNNActorModel(nn.Module):
         self.args = args
         self.rnn_hidden_dim = args.rnn_hidden_dim
         self.fc1 = nn.Linear(self.actor_input_dim, args.fc_hidden_dim)
-        self.rnn = nn.GRUCell(input_size=args.fc_hidden_dim,
-                              hidden_size=args.rnn_hidden_dim)
+        self.rnn = nn.GRUCell(
+            input_size=args.fc_hidden_dim, hidden_size=args.rnn_hidden_dim
+        )
         self.fc2 = nn.Linear(args.rnn_hidden_dim, args.n_actions)
 
     def init_hidden(self):
@@ -39,8 +40,7 @@ class RNNActorModel(nn.Module):
         if hidden_state is not None:
             h_in = hidden_state.reshape(-1, self.rnn_hidden_dim)
         else:
-            h_in = torch.zeros(out.shape[0],
-                               self.rnn_hidden_dim).to(inputs.device)
+            h_in = torch.zeros(out.shape[0], self.rnn_hidden_dim).to(inputs.device)
 
         hidden_state = self.rnn(out, h_in)
         out = self.fc2(hidden_state)  # (batch_size, n_actions)
@@ -86,8 +86,9 @@ class MultiLayerRNNActorModel(nn.Module):
 
     def init_hidden(self, batch_size: int) -> torch.Tensor:
         # make hidden states on same device as model
-        return self.fc1.weight.new(self.rnn_num_layers, batch_size,
-                                   self.rnn_hidden_dim).zero_()
+        return self.fc1.weight.new(
+            self.rnn_num_layers, batch_size, self.rnn_hidden_dim
+        ).zero_()
 
     def forward(
         self,
@@ -102,8 +103,8 @@ class MultiLayerRNNActorModel(nn.Module):
             hidden_state = self.init_hidden(batch_size)
         else:
             hidden_state = hidden_state.reshape(
-                self.rnn_num_layers, batch_size,
-                self.rnn_hidden_dim).to(input.device)
+                self.rnn_num_layers, batch_size, self.rnn_hidden_dim
+            ).to(input.device)
 
         out, hidden_state = self.rnn(out, hidden_state)
         # out: (batch_size, seq_len, rnn_hidden_dim)
@@ -115,11 +116,8 @@ class MultiLayerRNNActorModel(nn.Module):
         self.load_state_dict(model.state_dict())
 
 
-if __name__ == '__main__':
-    rnn = nn.GRU(input_size=512,
-                 hidden_size=256,
-                 num_layers=2,
-                 batch_first=True)
+if __name__ == "__main__":
+    rnn = nn.GRU(input_size=512, hidden_size=256, num_layers=2, batch_first=True)
     input = torch.randn(3, 512)
     h0 = torch.randn(2, 256)
     output, hn = rnn(input, h0)

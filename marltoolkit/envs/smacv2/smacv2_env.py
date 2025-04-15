@@ -34,14 +34,16 @@ class SMACv2Env(StarCraftCapabilityEnvWrapper):
         infos = [info] * self.n_agents
         avail_actions = self.env.get_avail_actions()
 
-        bad_transition = True if self.env._episode_steps >= self.env.episode_limit else False
+        bad_transition = (
+            True if self.env._episode_steps >= self.env.episode_limit else False
+        )
         for info in infos:
-            info['bad_transition'] = bad_transition
-            info['battles_won'] = self.env.battles_won
-            info['battles_game'] = self.env.battles_game
-            info['battles_draw'] = self.env.timeouts
-            info['restarts'] = self.env.force_restarts
-            info['won'] = self.env.win_counted
+            info["bad_transition"] = bad_transition
+            info["battles_won"] = self.env.battles_won
+            info["battles_game"] = self.env.battles_game
+            info["battles_draw"] = self.env.timeouts
+            info["restarts"] = self.env.force_restarts
+            info["won"] = self.env.win_counted
 
         return obs, global_state, rewards, dones, infos, avail_actions
 

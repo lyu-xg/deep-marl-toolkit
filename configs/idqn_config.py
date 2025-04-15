@@ -32,7 +32,7 @@ class IDQNConfig:
         clip_grad_norm: float = 10,
         learner_update_freq: int = 2,
         double_q: bool = True,
-        algo_name: str = 'idqn',
+        algo_name: str = "idqn",
     ) -> None:
 
         # Network architecture parameters

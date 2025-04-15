@@ -5,7 +5,7 @@ from marltoolkit.data.ma_replaybuffer import EpisodeData, ReplayBuffer
 
 def run_train_episode(env, agent, rpm: ReplayBuffer, config: dict = None):
 
-    episode_limit = config['episode_limit']
+    episode_limit = config["episode_limit"]
     agent.reset_agent()
     episode_reward = 0.0
     episode_step = 0
@@ -13,10 +13,10 @@ def run_train_episode(env, agent, rpm: ReplayBuffer, config: dict = None):
     state, obs = env.reset()
     episode_experience = EpisodeData(
         episode_limit=episode_limit,
-        state_shape=config['state_shape'],
-        obs_shape=config['obs_shape'],
-        num_actions=config['n_actions'],
-        num_agents=config['n_agents'],
+        state_shape=config["state_shape"],
+        obs_shape=config["obs_shape"],
+        num_actions=config["n_actions"],
+        num_agents=config["n_agents"],
     )
 
     while not terminated:
@@ -26,8 +26,16 @@ def run_train_episode(env, agent, rpm: ReplayBuffer, config: dict = None):
         next_state, next_obs, reward, terminated = env.step(actions)
         episode_reward += reward
         episode_step += 1
-        episode_experience.add(state, obs, actions, actions_onehot,
-                               available_actions, reward, terminated, 0)
+        episode_experience.add(
+            state,
+            obs,
+            actions,
+            actions_onehot,
+            available_actions,
+            reward,
+            terminated,
+            0,
+        )
         state = next_state
         obs = next_obs
 
@@ -44,9 +52,9 @@ def run_train_episode(env, agent, rpm: ReplayBuffer, config: dict = None):
     mean_td_loss = []
     mean_opt_loss = []
     mean_nopt_loss = []
-    if rpm.size() > config['memory_warmup_size']:
-        for _ in range(config['learner_update_freq']):
-            batch = rpm.sample_batch(config['batch_size'])
+    if rpm.size() > config["memory_warmup_size"]:
+        for _ in range(config["learner_update_freq"]):
+            batch = rpm.sample_batch(config["batch_size"])
             loss, td_loss, opt_loss, nopt_loss = agent.learn(**batch)
             mean_loss.append(loss)
             mean_td_loss.append(td_loss)
@@ -58,7 +66,15 @@ def run_train_episode(env, agent, rpm: ReplayBuffer, config: dict = None):
     mean_opt_loss = np.mean(mean_opt_loss) if mean_opt_loss else None
     mean_nopt_loss = np.mean(mean_nopt_loss) if mean_nopt_loss else None
 
-    return episode_reward, episode_step, is_win, mean_loss, mean_td_loss, mean_opt_loss, mean_nopt_loss
+    return (
+        episode_reward,
+        episode_step,
+        is_win,
+        mean_loss,
+        mean_td_loss,
+        mean_opt_loss,
+        mean_nopt_loss,
+    )
 
 
 def run_eval_episode(env, agent, num_eval_episodes=5):

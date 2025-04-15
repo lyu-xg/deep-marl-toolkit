@@ -23,11 +23,11 @@ class Monitor(gym.Wrapper):
     """
 
     def __init__(
-            self,
-            env: gym.Env,
-            allow_early_resets: bool = True,
-            reset_keywords: Tuple[str, ...] = (),
-            info_keywords: Tuple[str, ...] = (),
+        self,
+        env: gym.Env,
+        allow_early_resets: bool = True,
+        reset_keywords: Tuple[str, ...] = (),
+        info_keywords: Tuple[str, ...] = (),
     ) -> None:
         super().__init__(env=env)
         self.t_start = time.time()
@@ -52,8 +52,8 @@ class Monitor(gym.Wrapper):
         """
         if not self.allow_early_resets and not self.needs_reset:
             raise RuntimeError(
-                'Tried to reset an environment before done. If you want to allow early resets, '
-                'wrap your env with Monitor(env, path, allow_early_resets=True)'
+                "Tried to reset an environment before done. If you want to allow early resets, "
+                "wrap your env with Monitor(env, path, allow_early_resets=True)"
             )
         self.rewards = []
         self.needs_reset = False
@@ -61,7 +61,8 @@ class Monitor(gym.Wrapper):
             value = kwargs.get(key)
             if value is None:
                 raise ValueError(
-                    f'Expected you to pass keyword argument {key} into reset')
+                    f"Expected you to pass keyword argument {key} into reset"
+                )
             self.current_reset_info[key] = value
         return self.env.reset(**kwargs)
 
@@ -74,18 +75,17 @@ class Monitor(gym.Wrapper):
         :return: observation, reward, terminated, truncated, information
         """
         if self.needs_reset:
-            raise RuntimeError('Tried to step environment that needs reset')
-        observation, reward, terminated, truncated, info = self.env.step(
-            action)
+            raise RuntimeError("Tried to step environment that needs reset")
+        observation, reward, terminated, truncated, info = self.env.step(action)
         self.rewards.append(float(reward))
         if terminated or truncated:
             self.needs_reset = True
             ep_rew = sum(self.rewards)
             ep_len = len(self.rewards)
             ep_info = {
-                'r': round(ep_rew, 6),
-                'l': ep_len,
-                't': round(time.time() - self.t_start, 6),
+                "r": round(ep_rew, 6),
+                "l": ep_len,
+                "t": round(time.time() - self.t_start, 6),
             }
             for key in self.info_keywords:
                 ep_info[key] = info[key]
@@ -93,7 +93,7 @@ class Monitor(gym.Wrapper):
             self.episode_lengths.append(ep_len)
             self.episode_times.append(time.time() - self.t_start)
             ep_info.update(self.current_reset_info)
-            info['episode'] = ep_info
+            info["episode"] = ep_info
         self.total_steps += 1
         return observation, reward, terminated, truncated, info
 
@@ -146,9 +146,9 @@ class VecMonitor(VecEnvWrapper):
     """
 
     def __init__(
-            self,
-            vec_env: BaseVecEnv,
-            info_keywords: Tuple[str, ...] = (),
+        self,
+        vec_env: BaseVecEnv,
+        info_keywords: Tuple[str, ...] = (),
     ) -> None:
         # This check is not valid for special `VecEnv`
         # like the ones created by Procgen, that does follow completely
@@ -160,9 +160,9 @@ class VecMonitor(VecEnvWrapper):
 
         if is_wrapped_with_monitor:
             warnings.warn(
-                'The environment is already wrapped with a `Monitor` wrapper'
-                'but you are wrapping it with a `VecMonitor` wrapper, the `Monitor` statistics will be'
-                'overwritten by the `VecMonitor` ones.',
+                "The environment is already wrapped with a `Monitor` wrapper"
+                "but you are wrapping it with a `VecMonitor` wrapper, the `Monitor` statistics will be"
+                "overwritten by the `VecMonitor` ones.",
                 UserWarning,
             )
 
@@ -191,13 +191,13 @@ class VecMonitor(VecEnvWrapper):
                 episode_return = self.episode_returns[i]
                 episode_length = self.episode_lengths[i]
                 episode_info = {
-                    'r': episode_return,
-                    'l': episode_length,
-                    't': round(time.time() - self.t_start, 6),
+                    "r": episode_return,
+                    "l": episode_length,
+                    "t": round(time.time() - self.t_start, 6),
                 }
                 for key in self.info_keywords:
                     episode_info[key] = info[key]
-                info['episode'] = episode_info
+                info["episode"] = episode_info
                 self.episode_count += 1
                 self.episode_returns[i] = 0
                 self.episode_lengths[i] = 0

@@ -3,4 +3,4 @@
 from .qmixer import QMixerModel
 from .vdn import VDNMixer
 
-__all__ = ['QMixerModel', 'VDNMixer']
+__all__ = ["QMixerModel", "VDNMixer"]

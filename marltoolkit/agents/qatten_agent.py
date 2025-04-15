@@ -6,8 +6,12 @@ import torch
 import torch.nn as nn
 from torch.distributions import Categorical
 
-from marltoolkit.utils import (LinearDecayScheduler, MultiStepScheduler,
-                               check_model_method, hard_target_update)
+from marltoolkit.utils import (
+    LinearDecayScheduler,
+    MultiStepScheduler,
+    check_model_method,
+    hard_target_update,
+)
 
 
 class QattenAgent(object):
@@ -41,14 +45,14 @@ class QattenAgent(object):
         td_lambda: float = 0.6,
         optim_alpha: float = 0.99,
         optim_eps: float = 0.00001,
-        device: str = 'cpu',
+        device: str = "cpu",
     ):
-        check_model_method(actor_model, 'init_hidden', self.__class__.__name__)
-        check_model_method(actor_model, 'forward', self.__class__.__name__)
-        check_model_method(mixer_model, 'forward', self.__class__.__name__)
-        assert hasattr(mixer_model, 'n_agents') and not callable(
-            getattr(mixer_model, 'n_agents',
-                    None)), 'mixer_model needs to have attribute n_agents'
+        check_model_method(actor_model, "init_hidden", self.__class__.__name__)
+        check_model_method(actor_model, "forward", self.__class__.__name__)
+        check_model_method(mixer_model, "forward", self.__class__.__name__)
+        assert hasattr(mixer_model, "n_agents") and not callable(
+            getattr(mixer_model, "n_agents", None)
+        ), "mixer_model needs to have attribute n_agents"
         assert isinstance(gamma, float)
         assert isinstance(learning_rate, float)
 
@@ -79,43 +83,44 @@ class QattenAgent(object):
 
         self.params = list(self.actor_model.parameters())
         self.params += list(self.mixer_model.parameters())
-        self.optimizer = torch.optim.RMSprop(params=self.params,
-                                             lr=self.learning_rate,
-                                             alpha=optim_alpha,
-                                             eps=optim_eps)
+        self.optimizer = torch.optim.RMSprop(
+            params=self.params, lr=self.learning_rate, alpha=optim_alpha, eps=optim_eps
+        )
 
-        self.ep_scheduler = LinearDecayScheduler(egreedy_exploration,
-                                                 total_steps * 0.8)
+        self.ep_scheduler = LinearDecayScheduler(egreedy_exploration, total_steps * 0.8)
 
         lr_steps = [total_steps * 0.5, total_steps * 0.8]
-        self.lr_scheduler = MultiStepScheduler(start_value=learning_rate,
-                                               max_steps=total_steps,
-                                               milestones=lr_steps,
-                                               decay_factor=0.5)
+        self.lr_scheduler = MultiStepScheduler(
+            start_value=learning_rate,
+            max_steps=total_steps,
+            milestones=lr_steps,
+            decay_factor=0.5,
+        )
 
     def init_hidden_states(self, batch_size: int = 1) -> None:
         self.hidden_states = self.actor_model.init_hidden()
         if self.hidden_states is not None:
             self.hidden_states = self.hidden_states.unsqueeze(0).expand(
-                batch_size, self.n_agents, -1)
+                batch_size, self.n_agents, -1
+            )
 
         self.target_hidden_states = self.target_actor_model.init_hidden()
         if self.target_hidden_states is not None:
-            self.target_hidden_states = self.target_hidden_states.unsqueeze(
-                0).expand(batch_size, self.n_agents, -1)
+            self.target_hidden_states = self.target_hidden_states.unsqueeze(0).expand(
+                batch_size, self.n_agents, -1
+            )
 
     def sample(self, obs, available_actions):
-        ''' sample actions via epsilon-greedy
+        """sample actions via epsilon-greedy
         Args:
             obs (np.ndarray):               (n_agents, obs_shape)
             available_actions (np.ndarray): (n_agents, n_actions)
         Returns:
             actions (np.ndarray): sampled actions of agents
-        '''
+        """
         epsilon = np.random.random()
         if epsilon < self.exploration:
-            available_actions = torch.tensor(available_actions,
-                                             dtype=torch.float32)
+            available_actions = torch.tensor(available_actions, dtype=torch.float32)
             actions_dist = Categorical(available_actions)
             actions = actions_dist.sample().long().cpu().detach().numpy()
 
@@ -124,24 +129,23 @@ class QattenAgent(object):
 
         # update exploration
         self.exploration = max(
-            self.ep_scheduler.step(self.learner_update_freq),
-            self.min_exploration)
+            self.ep_scheduler.step(self.learner_update_freq), self.min_exploration
+        )
         return actions
 
     def predict(self, obs, available_actions):
-        '''take greedy actions
+        """take greedy actions
         Args:
             obs (np.ndarray):               (n_agents, obs_shape)
             available_actions (np.ndarray): (n_agents, n_actions)
         Returns:
             actions (np.ndarray):           (n_agents, )
-        '''
+        """
         obs = torch.tensor(obs, dtype=torch.float32, device=self.device)
-        available_actions = torch.tensor(available_actions,
-                                         dtype=torch.long,
-                                         device=self.device)
-        agents_q, self.hidden_states = self.actor_model(
-            obs, self.hidden_states)
+        available_actions = torch.tensor(
+            available_actions, dtype=torch.long, device=self.device
+        )
+        agents_q, self.hidden_states = self.actor_model(obs, self.hidden_states)
         # mask unavailable actions
         agents_q[available_actions == 0] = -1e10
         actions = agents_q.max(dim=1)[1].detach().cpu().numpy()
@@ -151,9 +155,18 @@ class QattenAgent(object):
         hard_target_update(self.actor_model, self.target_actor_model)
         hard_target_update(self.mixer_model, self.target_mixer_model)
 
-    def learn(self, state_batch, actions_batch, reward_batch, terminated_batch,
-              obs_batch, available_actions_batch, filled_batch, **kwargs):
-        '''
+    def learn(
+        self,
+        state_batch,
+        actions_batch,
+        reward_batch,
+        terminated_batch,
+        obs_batch,
+        available_actions_batch,
+        filled_batch,
+        **kwargs
+    ):
+        """
         Args:
             state (np.ndarray):                   (batch_size, T, state_shape)
             actions (np.ndarray):                 (batch_size, T, n_agents)
@@ -165,7 +178,7 @@ class QattenAgent(object):
         Returns:
             mean_loss (float): train loss
             mean_td_error (float): train TD error
-        '''
+        """
         # update target model
         if self.global_steps % self.target_update_interval == 0:
             self.update_target()
@@ -196,15 +209,15 @@ class QattenAgent(object):
             # obs: (batch_size * n_agents, obs_shape)
             obs = obs.reshape(-1, obs_batch.shape[-1])
             # Calculate estimated Q-Values
-            local_q, self.hidden_states = self.actor_model(
-                obs, self.hidden_states)
+            local_q, self.hidden_states = self.actor_model(obs, self.hidden_states)
             #  local_q: (batch_size * n_agents, n_actions) -->  (batch_size, n_agents, n_actions)
             local_q = local_q.reshape(batch_size, self.n_agents, -1)
             local_qs.append(local_q)
 
             # Calculate the Q-Values necessary for the target
             target_local_q, self.target_hidden_states = self.target_actor_model(
-                obs, self.target_hidden_states)
+                obs, self.target_hidden_states
+            )
             # target_local_q: (batch_size * n_agents, n_actions) -->  (batch_size, n_agents, n_actions)
             target_local_q = target_local_q.view(batch_size, self.n_agents, -1)
             target_local_qs.append(target_local_q)
@@ -216,9 +229,9 @@ class QattenAgent(object):
 
         # Pick the Q-Values for the actions taken by each agent
         # Remove the last dim
-        chosen_action_local_qs = torch.gather(local_qs[:, :-1, :, :],
-                                              dim=3,
-                                              index=actions_batch).squeeze(3)
+        chosen_action_local_qs = torch.gather(
+            local_qs[:, :-1, :, :], dim=3, index=actions_batch
+        ).squeeze(3)
 
         # mask unavailable actions
         target_local_qs[available_actions_batch[:, 1:, :] == 0] = -1e10
@@ -228,10 +241,10 @@ class QattenAgent(object):
             # Get actions that maximise live Q (for double q-learning)
             local_qs_detach = local_qs.clone().detach()
             local_qs_detach[available_actions_batch == 0] = -1e10
-            cur_max_actions = local_qs_detach[:, 1:].max(dim=3,
-                                                         keepdim=True)[1]
+            cur_max_actions = local_qs_detach[:, 1:].max(dim=3, keepdim=True)[1]
             target_local_max_qs = torch.gather(
-                target_local_qs, dim=3, index=cur_max_actions).squeeze(3)
+                target_local_qs, dim=3, index=cur_max_actions
+            ).squeeze(3)
         else:
             # idx0: value, idx1: index
             target_local_max_qs = target_local_qs.max(dim=3)[0]
@@ -239,23 +252,33 @@ class QattenAgent(object):
         # Mixing network
         # mix_net, input: ([Q1, Q2, ...], state), output: Q_total
         if self.mixer_model is not None:
-            chosen_action_global_qs = self.mixer_model(chosen_action_local_qs,
-                                                       state_batch[:, :-1, :])
+            chosen_action_global_qs = self.mixer_model(
+                chosen_action_local_qs, state_batch[:, :-1, :]
+            )
             target_global_max_qs = self.target_mixer_model(
-                target_local_max_qs, state_batch[:, 1:, :])
+                target_local_max_qs, state_batch[:, 1:, :]
+            )
 
         if self.q_lambda:
-            target = self.build_q_lambda_targets(reward_batch,
-                                                 terminated_batch, mask,
-                                                 target_local_max_qs,
-                                                 target_global_max_qs,
-                                                 self.gamma, self.td_lambda)
+            target = self.build_q_lambda_targets(
+                reward_batch,
+                terminated_batch,
+                mask,
+                target_local_max_qs,
+                target_global_max_qs,
+                self.gamma,
+                self.td_lambda,
+            )
 
         else:
-            target = self.build_td_lambda_targets(reward_batch,
-                                                  terminated_batch, mask,
-                                                  target_local_max_qs,
-                                                  self.gamma, self.td_lambda)
+            target = self.build_td_lambda_targets(
+                reward_batch,
+                terminated_batch,
+                mask,
+                target_local_max_qs,
+                self.gamma,
+                self.td_lambda,
+            )
 
         #  Td-error
         td_error = target.detach() - chosen_action_global_qs
@@ -273,12 +296,13 @@ class QattenAgent(object):
         self.optimizer.step()
 
         for param_group in self.optimizer.param_groups:
-            param_group['lr'] = self.learning_rate
+            param_group["lr"] = self.learning_rate
 
         return loss.item(), mean_td_error.item()
 
-    def build_td_lambda_targets(self, rewards, terminated, mask, target_qs,
-                                gamma, td_lambda):
+    def build_td_lambda_targets(
+        self, rewards, terminated, mask, target_qs, gamma, td_lambda
+    ):
         # Assumes  <target_qs > in B*T*A and <reward >, <terminated >, <mask > in (at least) B*T-1*1
         # Initialise  last  lambda -return  for  not  terminated  episodes
         ret = target_qs.new_zeros(*target_qs.shape)
@@ -286,13 +310,15 @@ class QattenAgent(object):
         # Backwards  recursive  update  of the "forward  view"
         for t in range(ret.shape[1] - 2, -1, -1):
             ret[:, t] = td_lambda * gamma * ret[:, t + 1] + mask[:, t] * (
-                rewards[:, t] + (1 - td_lambda) * gamma * target_qs[:, t + 1] *
-                (1 - terminated[:, t]))
+                rewards[:, t]
+                + (1 - td_lambda) * gamma * target_qs[:, t + 1] * (1 - terminated[:, t])
+            )
         # Returns lambda-return from t=0 to t=T-1, i.e. in B*T-1*A
         return ret[:, 0:-1]
 
-    def build_q_lambda_targets(self, rewards, terminated, mask, exp_qvals,
-                               qvals, gamma, td_lambda):
+    def build_q_lambda_targets(
+        self, rewards, terminated, mask, exp_qvals, qvals, gamma, td_lambda
+    ):
         # Assumes  <target_qs > in B*T*A and <reward >, <terminated >, <mask > in (at least) B*T-1*1
         # Initialise  last  lambda -return  for  not  terminated  episodes
         ret = exp_qvals.new_zeros(*exp_qvals.shape)
@@ -301,17 +327,18 @@ class QattenAgent(object):
         for t in range(ret.shape[1] - 2, -1, -1):
             reward = rewards[:, t] + exp_qvals[:, t] - qvals[:, t]
             ret[:, t] = td_lambda * gamma * ret[:, t + 1] + mask[:, t] * (
-                reward + (1 - td_lambda) * gamma * exp_qvals[:, t + 1] *
-                (1 - terminated[:, t]))
+                reward
+                + (1 - td_lambda) * gamma * exp_qvals[:, t + 1] * (1 - terminated[:, t])
+            )
         # Returns lambda-return from t=0 to t=T-1, i.e. in B*T-1*A
         return ret[:, 0:-1]
 
     def save(
         self,
         save_dir: str = None,
-        actor_model_name: str = 'actor_model.th',
-        mixer_model_name: str = 'mixer_model.th',
-        opt_name: str = 'optimizer.th',
+        actor_model_name: str = "actor_model.th",
+        mixer_model_name: str = "mixer_model.th",
+        opt_name: str = "optimizer.th",
     ):
         if not os.path.exists(save_dir):
             os.mkdir(save_dir)
@@ -321,14 +348,14 @@ class QattenAgent(object):
         torch.save(self.actor_model.state_dict(), actor_model_path)
         torch.save(self.mixer_model.state_dict(), mixer_model_path)
         torch.save(self.optimizer.state_dict(), optimizer_path)
-        print('save model successfully!')
+        print("save model successfully!")
 
     def restore(
         self,
         save_dir: str = None,
-        actor_model_name: str = 'actor_model.th',
-        mixer_model_name: str = 'mixer_model.th',
-        opt_name: str = 'optimizer.th',
+        actor_model_name: str = "actor_model.th",
+        mixer_model_name: str = "mixer_model.th",
+        opt_name: str = "optimizer.th",
     ):
         actor_model_path = os.path.join(save_dir, actor_model_name)
         mixer_model_path = os.path.join(save_dir, mixer_model_name)
@@ -336,4 +363,4 @@ class QattenAgent(object):
         self.actor_model.load_state_dict(torch.load(actor_model_path))
         self.mixer_model.load_state_dict(torch.load(mixer_model_path))
         self.optimizer.load_state_dict(torch.load(optimizer_path))
-        print('restore model successfully!')
+        print("restore model successfully!")

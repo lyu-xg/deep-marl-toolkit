@@ -26,12 +26,12 @@ class ComaModel(nn.Module):
         critic_input_dim = self._get_critic_input_dim()
 
         # Set up network layers
-        self.actor_model = MLPActorModel(input_dim=actor_input_dim,
-                                         hidden_dim=hidden_dim,
-                                         n_actions=n_actions)
-        self.critic_model = MLPCriticModel(input_dim=critic_input_dim,
-                                           hidden_dim=hidden_dim,
-                                           output_dim=1)
+        self.actor_model = MLPActorModel(
+            input_dim=actor_input_dim, hidden_dim=hidden_dim, n_actions=n_actions
+        )
+        self.critic_model = MLPCriticModel(
+            input_dim=critic_input_dim, hidden_dim=hidden_dim, output_dim=1
+        )
 
     def policy(self, obs, hidden_state):
         return self.actor_model(obs, hidden_state)

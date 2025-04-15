@@ -10,7 +10,7 @@ ROCK = 0
 PAPER = 1
 SCISSORS = 2
 NONE = 3
-MOVES = ['ROCK', 'PAPER', 'SCISSORS', 'None']
+MOVES = ["ROCK", "PAPER", "SCISSORS", "None"]
 NUM_ITERS = 100
 REWARD_MAP = {
     (ROCK, ROCK): (0, 0),
@@ -31,10 +31,10 @@ def env(render_mode=None):
     You can find full documentation for these methods elsewhere in the
     developer documentation.
     """
-    internal_render_mode = render_mode if render_mode != 'ansi' else 'human'
+    internal_render_mode = render_mode if render_mode != "ansi" else "human"
     env = raw_env(render_mode=internal_render_mode)
     # This wrapper is only for environments which print results to the terminal
-    if render_mode == 'ansi':
+    if render_mode == "ansi":
         env = wrappers.CaptureStdoutWrapper(env)
     # this wrapper helps error handling for discrete action spaces
     env = wrappers.AssertOutOfBoundsWrapper(env)
@@ -53,7 +53,7 @@ class raw_env(AECEnv):
     printed.
     """
 
-    metadata = {'render_modes': ['human'], 'name': 'rps_v2'}
+    metadata = {"render_modes": ["human"], "name": "rps_v2"}
 
     def __init__(self, render_mode=None):
         """The init method takes in environment arguments and should define the
@@ -68,20 +68,17 @@ class raw_env(AECEnv):
 
         These attributes should not be changed after initialization.
         """
-        self.possible_agents = ['player_' + str(r) for r in range(2)]
+        self.possible_agents = ["player_" + str(r) for r in range(2)]
 
         # optional: a mapping between agent name and ID
         self.agent_name_mapping = dict(
-            zip(self.possible_agents, list(range(len(self.possible_agents)))))
+            zip(self.possible_agents, list(range(len(self.possible_agents))))
+        )
 
         # optional: we can define the observation and action spaces here as attributes to be used in their corresponding methods
-        self._action_spaces = {
-            agent: Discrete(3)
-            for agent in self.possible_agents
-        }
+        self._action_spaces = {agent: Discrete(3) for agent in self.possible_agents}
         self._observation_spaces = {
-            agent: Discrete(4)
-            for agent in self.possible_agents
+            agent: Discrete(4) for agent in self.possible_agents
         }
         self.render_mode = render_mode
 
@@ -107,16 +104,16 @@ class raw_env(AECEnv):
         """
         if self.render_mode is None:
             gymnasium.logger.warn(
-                'You are calling render method without specifying any render mode.'
+                "You are calling render method without specifying any render mode."
             )
             return
 
         if len(self.agents) == 2:
-            string = 'Current state: Agent1: {} , Agent2: {}'.format(
-                MOVES[self.state[self.agents[0]]],
-                MOVES[self.state[self.agents[1]]])
+            string = "Current state: Agent1: {} , Agent2: {}".format(
+                MOVES[self.state[self.agents[0]]], MOVES[self.state[self.agents[1]]]
+            )
         else:
-            string = 'Game over'
+            string = "Game over"
         print(string)
 
     def observe(self, agent):
@@ -175,8 +172,10 @@ class raw_env(AECEnv):
         - agent_selection (to the next agent)
         And any internal state used by observe() or render()
         """
-        if (self.terminations[self.agent_selection]
-                or self.truncations[self.agent_selection]):
+        if (
+            self.terminations[self.agent_selection]
+            or self.truncations[self.agent_selection]
+        ):
             # handles stepping an agent which is already dead
             # accepts a None action for the one agent, and moves the agent_selection to
             # the next dead agent,  or if there are no more dead agents, to the next live agent
@@ -196,21 +195,21 @@ class raw_env(AECEnv):
         # collect reward if it is the last agent to act
         if self._agent_selector.is_last():
             # rewards for all agents are placed in the .rewards dictionary
-            self.rewards[self.agents[0]], self.rewards[
-                self.agents[1]] = REWARD_MAP[(self.state[self.agents[0]],
-                                              self.state[self.agents[1]])]
+            self.rewards[self.agents[0]], self.rewards[self.agents[1]] = REWARD_MAP[
+                (self.state[self.agents[0]], self.state[self.agents[1]])
+            ]
 
             self.num_moves += 1
             # The truncations dictionary must be updated for all players.
             self.truncations = {
-                agent: self.num_moves >= NUM_ITERS
-                for agent in self.agents
+                agent: self.num_moves >= NUM_ITERS for agent in self.agents
             }
 
             # observe the current state
             for i in self.agents:
-                self.observations[i] = self.state[self.agents[
-                    1 - self.agent_name_mapping[i]]]
+                self.observations[i] = self.state[
+                    self.agents[1 - self.agent_name_mapping[i]]
+                ]
         else:
             # necessary so that observe() returns a reasonable observation at all times.
             self.state[self.agents[1 - self.agent_name_mapping[agent]]] = NONE
@@ -222,5 +221,5 @@ class raw_env(AECEnv):
         # Adds .rewards to ._cumulative_rewards
         self._accumulate_rewards()
 
-        if self.render_mode == 'human':
+        if self.render_mode == "human":
             self.render()

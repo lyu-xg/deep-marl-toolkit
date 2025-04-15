@@ -35,7 +35,7 @@ class MaddpgAgent(BaseAgent):
         tau: float = 0.01,
         actor_lr: float = 0.01,
         critic_lr: float = 0.01,
-        device: str = 'cpu',
+        device: str = "cpu",
     ):
 
         # checks
@@ -53,8 +53,7 @@ class MaddpgAgent(BaseAgent):
             MLPActorModel(obs_shape, n_actions) for _ in range(n_agents)
         ]
         self.critic_model = [
-            MLPCriticModel(n_agents, obs_shape, n_actions)
-            for _ in range(n_agents)
+            MLPCriticModel(n_agents, obs_shape, n_actions) for _ in range(n_agents)
         ]
         self.actor_target = copy.deepcopy(actor_model)
         self.critic_target = copy.deepcopy(critic_model)
@@ -179,11 +178,11 @@ class MaddpgAgent(BaseAgent):
         return cost
 
     def update_target(self, tau):
-        for target_param, param in zip(self.actor_target.parameters(),
-                                       self.actor_model.parameters()):
-            target_param.data.copy_(tau * param.data +
-                                    (1 - tau) * target_param.data)
-        for target_param, param in zip(self.critic_target.parameters(),
-                                       self.critic_model.parameters()):
-            target_param.data.copy_(tau * param.data +
-                                    (1 - tau) * target_param.data)
+        for target_param, param in zip(
+            self.actor_target.parameters(), self.actor_model.parameters()
+        ):
+            target_param.data.copy_(tau * param.data + (1 - tau) * target_param.data)
+        for target_param, param in zip(
+            self.critic_target.parameters(), self.critic_model.parameters()
+        ):
+            target_param.data.copy_(tau * param.data + (1 - tau) * target_param.data)

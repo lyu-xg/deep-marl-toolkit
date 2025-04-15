@@ -6,17 +6,19 @@ import torch.nn.functional as F
 
 class QattenMixer(nn.Module):
 
-    def __init__(self,
-                 n_agents: int = None,
-                 state_dim: int = None,
-                 agent_own_state_size: int = None,
-                 n_query_embedding_layer1: int = 64,
-                 n_query_embedding_layer2: int = 32,
-                 n_key_embedding_layer1: int = 32,
-                 n_head_embedding_layer1: int = 64,
-                 n_head_embedding_layer2: int = 4,
-                 num_attention_heads: int = 4,
-                 n_constrant_value: int = 32):
+    def __init__(
+        self,
+        n_agents: int = None,
+        state_dim: int = None,
+        agent_own_state_size: int = None,
+        n_query_embedding_layer1: int = 64,
+        n_query_embedding_layer2: int = 32,
+        n_key_embedding_layer1: int = 32,
+        n_head_embedding_layer1: int = 64,
+        n_head_embedding_layer2: int = 4,
+        num_attention_heads: int = 4,
+        n_constrant_value: int = 32,
+    ):
         super(QattenMixer, self).__init__()
         self.n_agents = n_agents
         self.state_dim = state_dim
@@ -36,33 +38,38 @@ class QattenMixer(nn.Module):
                 nn.Sequential(
                     nn.Linear(state_dim, n_query_embedding_layer1),
                     nn.ReLU(inplace=True),
-                    nn.Linear(n_query_embedding_layer1,
-                              n_query_embedding_layer2)))
+                    nn.Linear(n_query_embedding_layer1, n_query_embedding_layer2),
+                )
+            )
 
         self.key_embedding_layers = nn.ModuleList()
         for _ in range(num_attention_heads):
             self.key_embedding_layers.append(
-                nn.Linear(self.agent_own_state_size, n_key_embedding_layer1))
+                nn.Linear(self.agent_own_state_size, n_key_embedding_layer1)
+            )
 
         self.scaled_product_value = np.sqrt(n_query_embedding_layer2)
 
         self.head_embedding_layer = nn.Sequential(
             nn.Linear(state_dim, n_head_embedding_layer1),
             nn.ReLU(inplace=True),
-            nn.Linear(n_head_embedding_layer1, n_head_embedding_layer2))
+            nn.Linear(n_head_embedding_layer1, n_head_embedding_layer2),
+        )
 
         self.constrant_value_layer = nn.Sequential(
-            nn.Linear(state_dim, n_constrant_value), nn.ReLU(inplace=True),
-            nn.Linear(n_constrant_value, 1))
+            nn.Linear(state_dim, n_constrant_value),
+            nn.ReLU(inplace=True),
+            nn.Linear(n_constrant_value, 1),
+        )
 
     def forward(self, agent_qs: torch.Tensor, states: torch.Tensor):
-        '''
+        """
         Args:
             agent_qs (torch.Tensor): (batch_size, T, n_agents)
             states (torch.Tensor):   (batch_size, T, state_shape)
         Returns:
             q_total (torch.Tensor):  (batch_size, T, 1)
-        '''
+        """
         bs = agent_qs.size(0)
         # states : (batch_size * T, state_shape)
         states = states.reshape(-1, self.state_dim)
@@ -77,15 +84,18 @@ class QattenMixer(nn.Module):
 
             # shape: [batch_size * T, 1, state_dim]
             state_embedding = state_embedding.reshape(
-                -1, 1, self.n_query_embedding_layer2)
+                -1, 1, self.n_query_embedding_layer2
+            )
             # shape: [batch_size * T, state_dim, n_agent]
-            u_embedding = u_embedding.reshape(-1, self.n_agents,
-                                              self.n_key_embedding_layer1)
+            u_embedding = u_embedding.reshape(
+                -1, self.n_agents, self.n_key_embedding_layer1
+            )
             u_embedding = u_embedding.permute(0, 2, 1)
 
             # shape: [batch_size * T, 1, n_agent]
-            raw_lambda = torch.matmul(state_embedding,
-                                      u_embedding) / self.scaled_product_value
+            raw_lambda = (
+                torch.matmul(state_embedding, u_embedding) / self.scaled_product_value
+            )
             q_lambda = F.softmax(raw_lambda, dim=-1)
 
             q_lambda_list.append(q_lambda)
@@ -99,7 +109,7 @@ class QattenMixer(nn.Module):
         # shape: [batch_size * T, 1, num_attention_heads]
         q_h = torch.matmul(agent_qs, q_lambda_list)
 
-        if self.type == 'weighted':
+        if self.type == "weighted":
             # shape: [batch_size * T, num_attention_heads]
             w_h = torch.abs(self.head_embedding_layer(states))
             # shape: [batch_size * T, num_attention_heads, 1]
@@ -122,6 +132,7 @@ class QattenMixer(nn.Module):
     def _get_us(self, states):
         agent_own_state_size = self.agent_own_state_size
         with torch.no_grad():
-            us = states[:, :agent_own_state_size * self.n_agents].reshape(
-                -1, agent_own_state_size)
+            us = states[:, : agent_own_state_size * self.n_agents].reshape(
+                -1, agent_own_state_size
+            )
         return us

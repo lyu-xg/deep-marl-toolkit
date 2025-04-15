@@ -5,8 +5,12 @@ import torch
 import torch.nn as nn
 from torch.distributions import Categorical
 
-from marltoolkit.utils import (LinearDecayScheduler, MultiStepScheduler,
-                               check_model_method, hard_target_update)
+from marltoolkit.utils import (
+    LinearDecayScheduler,
+    MultiStepScheduler,
+    check_model_method,
+    hard_target_update,
+)
 
 from .base_agent import BaseAgent
 
@@ -41,10 +45,10 @@ class ACAgent(BaseAgent):
         target_update_interval: int = 100,
         learner_update_freq: int = 1,
         clip_grad_norm: float = 10,
-        device: str = 'cpu',
+        device: str = "cpu",
     ):
-        check_model_method(actor_model, 'init_hidden', self.__class__.__name__)
-        check_model_method(actor_model, 'forward', self.__class__.__name__)
+        check_model_method(actor_model, "init_hidden", self.__class__.__name__)
+        check_model_method(actor_model, "forward", self.__class__.__name__)
         assert isinstance(gamma, float)
         assert isinstance(learning_rate, float)
 
@@ -71,8 +75,9 @@ class ACAgent(BaseAgent):
         self.target_actor_model.to(device)
 
         self.agent_params = list(self.actor_model.parameters())
-        self.agent_optimiser = torch.optim.Adam(params=self.agent_params,
-                                                lr=learning_rate)
+        self.agent_optimiser = torch.optim.Adam(
+            params=self.agent_params, lr=learning_rate
+        )
 
         self.critic_model = critic_model
         self.target_critic_model = deepcopy(self.critic_model)
@@ -80,41 +85,44 @@ class ACAgent(BaseAgent):
         self.target_critic_model.to(device)
         self.critic_params = list(self.critic_model.parameters())
 
-        self.critic_optimiser = torch.optim.Adam(params=self.critic_params,
-                                                 lr=learning_rate)
+        self.critic_optimiser = torch.optim.Adam(
+            params=self.critic_params, lr=learning_rate
+        )
 
-        self.ep_scheduler = LinearDecayScheduler(egreedy_exploration,
-                                                 total_steps * 0.8)
+        self.ep_scheduler = LinearDecayScheduler(egreedy_exploration, total_steps * 0.8)
 
         lr_steps = [total_steps * 0.5, total_steps * 0.8]
-        self.lr_scheduler = MultiStepScheduler(start_value=learning_rate,
-                                               max_steps=total_steps,
-                                               milestones=lr_steps,
-                                               decay_factor=0.5)
+        self.lr_scheduler = MultiStepScheduler(
+            start_value=learning_rate,
+            max_steps=total_steps,
+            milestones=lr_steps,
+            decay_factor=0.5,
+        )
 
     def init_hidden_states(self, batch_size: int = 1) -> None:
         self.hidden_states = self.actor_model.init_hidden()
         if self.hidden_states is not None:
             self.hidden_states = self.hidden_states.unsqueeze(0).expand(
-                batch_size, self.n_agents, -1)
+                batch_size, self.n_agents, -1
+            )
 
         self.target_hidden_states = self.target_actor_model.init_hidden()
         if self.target_hidden_states is not None:
-            self.target_hidden_states = self.target_hidden_states.unsqueeze(
-                0).expand(batch_size, self.n_agents, -1)
+            self.target_hidden_states = self.target_hidden_states.unsqueeze(0).expand(
+                batch_size, self.n_agents, -1
+            )
 
     def sample(self, obs, available_actions):
-        ''' sample actions via epsilon-greedy
+        """sample actions via epsilon-greedy
         Args:
             obs (np.ndarray):               (n_agents, obs_shape)
             available_actions (np.ndarray): (n_agents, n_actions)
         Returns:
             actions (np.ndarray): sampled actions of agents
-        '''
+        """
         epsilon = np.random.random()
         if epsilon < self.exploration:
-            available_actions = torch.tensor(available_actions,
-                                             dtype=torch.float32)
+            available_actions = torch.tensor(available_actions, dtype=torch.float32)
             actions_dist = Categorical(available_actions)
             actions = actions_dist.sample().long().cpu().detach().numpy()
 
@@ -126,19 +134,18 @@ class ACAgent(BaseAgent):
         return actions
 
     def predict(self, obs, available_actions):
-        '''take greedy actions
+        """take greedy actions
         Args:
             obs (np.ndarray):               (n_agents, obs_shape)
             available_actions (np.ndarray): (n_agents, n_actions)
         Returns:
             actions (np.ndarray):           (n_agents, )
-        '''
+        """
         obs = torch.tensor(obs, dtype=torch.float32, device=self.device)
-        available_actions = torch.tensor(available_actions,
-                                         dtype=torch.long,
-                                         device=self.device)
-        agents_q, self.hidden_states = self.actor_model(
-            obs, self.hidden_states)
+        available_actions = torch.tensor(
+            available_actions, dtype=torch.long, device=self.device
+        )
+        agents_q, self.hidden_states = self.actor_model(obs, self.hidden_states)
         # mask unavailable actions
         agents_q[available_actions == 0] = -1e10
         actions = agents_q.max(dim=1)[1].detach().cpu().numpy()
@@ -148,9 +155,18 @@ class ACAgent(BaseAgent):
         hard_target_update(self.actor_model, self.target_actor_model)
         hard_target_update(self.critic_model, self.target_critic_model)
 
-    def learn(self, state_batch, actions_batch, reward_batch, terminated_batch,
-              obs_batch, available_actions_batch, filled_batch, **kwargs):
-        '''
+    def learn(
+        self,
+        state_batch,
+        actions_batch,
+        reward_batch,
+        terminated_batch,
+        obs_batch,
+        available_actions_batch,
+        filled_batch,
+        **kwargs
+    ):
+        """
         Args:
             state (np.ndarray):                   (batch_size, T, state_shape)
             actions (np.ndarray):                 (batch_size, T, n_agents)
@@ -162,7 +178,7 @@ class ACAgent(BaseAgent):
         Returns:
             mean_loss (float): train loss
             mean_td_error (float): train TD error
-        '''
+        """
         # update target model
         if self.global_steps % self.target_update_interval == 0:
             self.update_target()
@@ -193,15 +209,15 @@ class ACAgent(BaseAgent):
             # obs: (batch_size * n_agents, obs_shape)
             obs = obs.reshape(-1, obs_batch.shape[-1])
             # Calculate estimated Q-Values
-            local_q, self.hidden_states = self.actor_model(
-                obs, self.hidden_states)
+            local_q, self.hidden_states = self.actor_model(obs, self.hidden_states)
             #  local_q: (batch_size * n_agents, n_actions) -->  (batch_size, n_agents, n_actions)
             local_q = local_q.reshape(batch_size, self.n_agents, -1)
             local_qs.append(local_q)
 
             # Calculate the Q-Values necessary for the target
             target_local_q, self.target_hidden_states = self.target_actor_model(
-                obs, self.target_hidden_states)
+                obs, self.target_hidden_states
+            )
             # target_local_q: (batch_size * n_agents, n_actions) -->  (batch_size, n_agents, n_actions)
             target_local_q = target_local_q.view(batch_size, self.n_agents, -1)
             target_local_qs.append(target_local_q)
@@ -212,7 +228,8 @@ class ACAgent(BaseAgent):
         target_local_qs = torch.stack(target_local_qs[1:], dim=1)
 
         advantages, mean_td_error, critic_loss = self.train_critic_sequential(
-            obs_batch, reward_batch, critic_mask)
+            obs_batch, reward_batch, critic_mask
+        )
         advantages = advantages.detach()
         # Calculate policy grad with mask
         pi = local_qs
@@ -221,14 +238,15 @@ class ACAgent(BaseAgent):
         log_pi_taken = torch.log(pi_taken + 1e-10)
 
         entropy = -torch.sum(pi * torch.log(pi + 1e-10), dim=-1)
-        pg_loss = -((advantages * log_pi_taken + self.entropy_coef * entropy) *
-                    mask).sum() / mask.sum()
+        pg_loss = (
+            -((advantages * log_pi_taken + self.entropy_coef * entropy) * mask).sum()
+            / mask.sum()
+        )
 
         # Optimise agents
         self.agent_optimiser.zero_grad()
         pg_loss.backward()
-        torch.nn.utils.clip_grad_norm_(self.agent_params,
-                                       self.args.grad_norm_clip)
+        torch.nn.utils.clip_grad_norm_(self.agent_params, self.args.grad_norm_clip)
         self.agent_optimiser.step()
 
         return pg_loss.item(), critic_loss.item(), mean_td_error.item()
@@ -238,11 +256,10 @@ class ACAgent(BaseAgent):
             target_vals = self.target_critic_model(obs_batch)
             target_vals = target_vals.squeeze(3)
 
-        target_returns = self.nstep_returns(rewards, mask, target_vals,
-                                            self.q_nstep)
+        target_returns = self.nstep_returns(rewards, mask, target_vals, self.q_nstep)
 
         v = self.critic_model(obs_batch)[:, :-1].squeeze(3)
-        td_error = (target_returns.detach() - v)
+        td_error = target_returns.detach() - v
         masked_td_error = td_error * mask
         mean_td_error = masked_td_error.sum() / mask.sum()
         critic_loss = (masked_td_error**2).sum() / mask.sum()
@@ -262,16 +279,11 @@ class ACAgent(BaseAgent):
                 if t >= rewards.size(1):
                     break
                 elif step == nsteps:
-                    nstep_return_t += self.gamma**step * values[:, t] * mask[:,
-                                                                             t]
+                    nstep_return_t += self.gamma**step * values[:, t] * mask[:, t]
                 elif t == rewards.size(1) - 1 and self.add_value_last_step:
-                    nstep_return_t += self.gamma**step * rewards[:,
-                                                                 t] * mask[:,
-                                                                           t]
-                    nstep_return_t += self.gamma**(step + 1) * values[:, t + 1]
+                    nstep_return_t += self.gamma**step * rewards[:, t] * mask[:, t]
+                    nstep_return_t += self.gamma ** (step + 1) * values[:, t + 1]
                 else:
-                    nstep_return_t += self.gamma**step * rewards[:,
-                                                                 t] * mask[:,
-                                                                           t]
+                    nstep_return_t += self.gamma**step * rewards[:, t] * mask[:, t]
             nstep_values[:, t_start, :] = nstep_return_t
         return nstep_values
